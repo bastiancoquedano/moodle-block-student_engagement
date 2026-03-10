@@ -59,6 +59,8 @@ class block_student_engagement extends block_base {
      * @return stdClass
      */
     public function get_content(): stdClass {
+        global $COURSE, $DB;
+
         if ($this->content !== null) {
             return $this->content;
         }
@@ -76,7 +78,41 @@ class block_student_engagement extends block_base {
             return $this->content;
         }
 
-        $this->content->text = get_string('contentnotready', 'block_student_engagement');
+        // Cache-first read: this issue introduces the persistence model and fast runtime reads.
+        // Calculation (reading logstore_standard_log) will be implemented separately.
+        $courseid = isset($COURSE->id) ? (int)$COURSE->id : 0;
+        $cache = null;
+        if ($courseid > 0) {
+            $cache = \block_student_engagement\cache_manager::get_course_cache($courseid);
+        }
+
+        if (!$cache) {
+            $this->content->text = get_string('cachenotavailable', 'block_student_engagement');
+            return $this->content;
+        }
+
+        $mostactiveuser = '-';
+        if (!empty($cache->most_active_userid)) {
+            $user = $DB->get_record('user', ['id' => (int)$cache->most_active_userid],
+                'id,firstname,lastname,firstnamephonetic,lastnamephonetic,middlename,alternatename', IGNORE_MISSING);
+            if ($user) {
+                $mostactiveuser = fullname($user);
+            }
+        }
+
+        $lastcalculated = !empty($cache->last_calculated) ? userdate((int)$cache->last_calculated) : '-';
+
+        $rows = [];
+        $rows[] = html_writer::tag('dt', get_string('active_students', 'block_student_engagement'));
+        $rows[] = html_writer::tag('dd', (int)$cache->active_students);
+        $rows[] = html_writer::tag('dt', get_string('inactive_students', 'block_student_engagement'));
+        $rows[] = html_writer::tag('dd', (int)$cache->inactive_students);
+        $rows[] = html_writer::tag('dt', get_string('most_active_user', 'block_student_engagement'));
+        $rows[] = html_writer::tag('dd', s($mostactiveuser));
+        $rows[] = html_writer::tag('dt', get_string('last_calculated', 'block_student_engagement'));
+        $rows[] = html_writer::tag('dd', s($lastcalculated));
+
+        $this->content->text = html_writer::tag('dl', implode('', $rows), ['class' => 'block_student_engagement_metrics']);
         return $this->content;
     }
 }
