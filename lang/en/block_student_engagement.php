@@ -27,4 +27,15 @@ $string['student_engagement:addinstance'] = 'Add a new Student Engagement block'
 $string['student_engagement:myaddinstance'] = 'Add a new Student Engagement block to Dashboard';
 $string['student_engagement:view'] = 'View Student Engagement block';
 $string['contentnotready'] = 'Engagement metrics are not available yet.';
+$string['cachenotavailable'] = 'Engagement metrics have not been calculated for this course yet.';
 $string['nopermissions'] = 'You do not have permission to view this block.';
+
+$string['active_days_threshold'] = 'Active days threshold';
+$string['active_days_threshold_desc'] = 'Number of days with recent activity to consider a student active.';
+$string['inactive_days_threshold'] = 'Inactive days threshold';
+$string['inactive_days_threshold_desc'] = 'Number of days without activity to consider a student inactive.';
+
+$string['active_students'] = 'Active students';
+$string['inactive_students'] = 'Inactive students';
+$string['most_active_user'] = 'Most active user';
+$string['last_calculated'] = 'Last calculated';

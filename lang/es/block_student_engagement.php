@@ -27,4 +27,15 @@ $string['student_engagement:addinstance'] = 'Agregar un nuevo bloque de Particip
 $string['student_engagement:myaddinstance'] = 'Agregar un nuevo bloque de Participación estudiantil al tablero';
 $string['student_engagement:view'] = 'Ver bloque de Participación estudiantil';
 $string['contentnotready'] = 'Las métricas de participación aún no están disponibles.';
+$string['cachenotavailable'] = 'Las métricas de participación aún no se han calculado para este curso.';
 $string['nopermissions'] = 'No tienes permisos para ver este bloque.';
+
+$string['active_days_threshold'] = 'Umbral de días activos';
+$string['active_days_threshold_desc'] = 'Número de días con actividad reciente para considerar a un estudiante activo.';
+$string['inactive_days_threshold'] = 'Umbral de días de inactividad';
+$string['inactive_days_threshold_desc'] = 'Número de días sin actividad para considerar a un estudiante inactivo.';
+
+$string['active_students'] = 'Estudiantes activos';
+$string['inactive_students'] = 'Estudiantes inactivos';
+$string['most_active_user'] = 'Usuario más activo';
+$string['last_calculated'] = 'Último cálculo';
