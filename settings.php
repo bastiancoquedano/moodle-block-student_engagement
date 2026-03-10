@@ -25,5 +25,19 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-    // Bootstrap stage: no configurable settings yet.
+    $settings->add(new admin_setting_configtext(
+        'block_student_engagement/active_days_threshold',
+        get_string('active_days_threshold', 'block_student_engagement'),
+        get_string('active_days_threshold_desc', 'block_student_engagement'),
+        7,
+        PARAM_INT
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'block_student_engagement/inactive_days_threshold',
+        get_string('inactive_days_threshold', 'block_student_engagement'),
+        get_string('inactive_days_threshold_desc', 'block_student_engagement'),
+        14,
+        PARAM_INT
+    ));
 }
