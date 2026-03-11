@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details for block_student_engagement.
+ * Task definitions for block_student_engagement.
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano
@@ -24,6 +24,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026031100; // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires  = 2024100100; // Requires this Moodle version (4.5).
-$plugin->component = 'block_student_engagement';
+$tasks = [
+    [
+        'classname' => '\block_student_engagement\task\calculate_engagement',
+        'blocking' => 0,
+        'minute' => 'R',
+        'hour' => '2',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+        'disabled' => 0,
+    ],
+];
+
