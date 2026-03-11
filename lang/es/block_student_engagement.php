@@ -36,7 +36,12 @@ $string['inactive_days_threshold'] = 'Umbral de días de inactividad';
 $string['inactive_days_threshold_desc'] = 'Número de días sin actividad para considerar a un estudiante inactivo.';
 
 $string['active_students'] = 'Estudiantes activos';
+$string['active_students_7_days'] = 'Estudiantes activos (7 dias)';
 $string['inactive_students'] = 'Estudiantes inactivos';
+$string['inactive_students_over_threshold'] = 'Estudiantes inactivos > 14 dias';
 $string['most_active_user'] = 'Usuario más activo';
+$string['most_active_interactions'] = 'Interacciones: {$a}';
+$string['no_inactive_students'] = 'No se encontraron estudiantes inactivos.';
+$string['no_most_active_user'] = 'No hay un estudiante activo disponible.';
 $string['last_calculated'] = 'Último cálculo';
 $string['task_calculate_engagement'] = 'Calcular y refrescar cache de engagement';
