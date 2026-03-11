@@ -190,10 +190,11 @@ class engagement_analyser {
             'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
         ];
 
-        $record = $DB->get_record_sql($sql, $params, IGNORE_MULTIPLE);
-        if (!$record) {
+        $records = $DB->get_records_sql($sql, $params, 0, 1);
+        if (empty($records)) {
             return null;
         }
+        $record = reset($records);
 
         $result = new \stdClass();
         $result->userid = (int)$record->userid;
