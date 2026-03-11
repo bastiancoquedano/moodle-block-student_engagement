@@ -73,6 +73,8 @@ class block_student_engagement extends block_base {
             return $this->content;
         }
 
+        $this->page->requires->css('/blocks/student_engagement/styles.css');
+        
         if (!has_capability('block/student_engagement:view', $this->context)) {
             $this->content->text = get_string('nopermissions', 'block_student_engagement');
             return $this->content;
