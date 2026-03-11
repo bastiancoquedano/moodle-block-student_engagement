@@ -59,7 +59,7 @@ class block_student_engagement extends block_base {
      * @return stdClass
      */
     public function get_content(): stdClass {
-        global $COURSE, $DB;
+        global $COURSE;
 
         if ($this->content !== null) {
             return $this->content;
@@ -91,32 +91,32 @@ class block_student_engagement extends block_base {
             return $this->content;
         }
 
-        $mostactiveuser = $this->resolve_most_active_user($cache);
-        $inactiveusers = $this->resolve_inactive_users($cache);
-        $lastcalculated = !empty($cache->last_calculated) ? userdate((int)$cache->last_calculated) : '-';
-
-        $rows = [];
-        $rows[] = html_writer::tag('dt', get_string('active_students_7_days', 'block_student_engagement'));
-        $rows[] = html_writer::tag('dd', (string)((int)$cache->active_students));
-        $rows[] = html_writer::tag('dt', get_string('inactive_students', 'block_student_engagement'));
-        $rows[] = html_writer::tag('dd', (string)((int)$cache->inactive_students));
-        $rows[] = html_writer::tag('dt', get_string('most_active_user', 'block_student_engagement'));
-        $rows[] = html_writer::tag(
-            'dd',
-            s($mostactiveuser) . html_writer::empty_tag('br') .
-            get_string('most_active_interactions', 'block_student_engagement', (int)$cache->most_active_interactions)
-        );
-        $rows[] = html_writer::tag('dt', get_string('inactive_students_over_threshold', 'block_student_engagement'));
-        $rows[] = html_writer::tag('dd', $inactiveusers);
-        $rows[] = html_writer::tag('dt', get_string('last_calculated', 'block_student_engagement'));
-        $rows[] = html_writer::tag('dd', s($lastcalculated));
-
-        $this->content->text = html_writer::tag(
-            'dl',
-            implode('', $rows),
-            ['class' => 'block_student_engagement_metrics']
-        );
+        $renderer = $this->page->get_renderer('block_student_engagement');
+        $this->content->text = $renderer->dashboard($this->prepare_dashboard_data($cache));
         return $this->content;
+    }
+
+    /**
+     * Prepare dashboard data for the renderer.
+     *
+     * @param stdClass $cache
+     * @return stdClass
+     */
+    private function prepare_dashboard_data(stdClass $cache): stdClass {
+        $data = new stdClass();
+        $data->title = get_string('pluginname', 'block_student_engagement');
+        $data->subtitle = get_string('dashboard_subtitle', 'block_student_engagement');
+        $data->active_students = (int)$cache->active_students;
+        $data->inactive_students = (int)$cache->inactive_students;
+        $data->most_active_user = $this->resolve_most_active_user_name($cache);
+        $data->has_most_active_user = !empty($cache->most_active_userid) &&
+            $data->most_active_user !== get_string('no_most_active_user', 'block_student_engagement');
+        $data->most_active_interactions = (int)$cache->most_active_interactions;
+        $data->inactive_users = $this->resolve_inactive_user_names($cache);
+        $data->has_inactive_users = !empty($data->inactive_users);
+        $data->last_calculated = !empty($cache->last_calculated) ? userdate((int)$cache->last_calculated) : '-';
+
+        return $data;
     }
 
     /**
@@ -125,7 +125,7 @@ class block_student_engagement extends block_base {
      * @param stdClass $cache
      * @return string
      */
-    private function resolve_most_active_user(stdClass $cache): string {
+    private function resolve_most_active_user_name(stdClass $cache): string {
         global $DB;
 
         if (empty($cache->most_active_userid)) {
@@ -150,23 +150,23 @@ class block_student_engagement extends block_base {
      * Resolve the list of inactive user names from cached JSON data.
      *
      * @param stdClass $cache
-     * @return string
+     * @return string[]
      */
-    private function resolve_inactive_users(stdClass $cache): string {
+    private function resolve_inactive_user_names(stdClass $cache): array {
         global $DB;
 
         if (empty($cache->inactive_userids)) {
-            return s(get_string('no_inactive_students', 'block_student_engagement'));
+            return [];
         }
 
         $userids = json_decode($cache->inactive_userids, true);
         if (!is_array($userids)) {
-            return s(get_string('no_inactive_students', 'block_student_engagement'));
+            return [];
         }
 
         $userids = array_values(array_filter(array_map('intval', $userids)));
         if (empty($userids)) {
-            return s(get_string('no_inactive_students', 'block_student_engagement'));
+            return [];
         }
 
         $users = $DB->get_records_list(
@@ -178,14 +178,14 @@ class block_student_engagement extends block_base {
         );
 
         if (empty($users)) {
-            return s(get_string('no_inactive_students', 'block_student_engagement'));
+            return [];
         }
 
         $items = [];
         foreach ($users as $user) {
-            $items[] = html_writer::tag('li', s(fullname($user)));
+            $items[] = fullname($user);
         }
 
-        return html_writer::tag('ul', implode('', $items));
+        return $items;
     }
 }
