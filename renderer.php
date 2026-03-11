@@ -66,7 +66,8 @@ class block_student_engagement_renderer extends plugin_renderer_base {
             get_string('most_active_user', 'block_student_engagement'),
             s($data->most_active_user),
             get_string('most_active_interactions', 'block_student_engagement', $data->most_active_interactions),
-            !$data->has_most_active_user
+            !$data->has_most_active_user,
+            'block_student_engagement-card__value--person'
         );
         $cards[] = $this->inactive_users_card($data);
 
@@ -81,6 +82,16 @@ class block_student_engagement_renderer extends plugin_renderer_base {
 
         $content = html_writer::start_div('block_student_engagement-dashboard');
         $content .= $header;
+        if (!empty($data->has_report_link) && !empty($data->report_url)) {
+            $content .= html_writer::div(
+                html_writer::link(
+                    $data->report_url,
+                    get_string('view_engagement_report', 'block_student_engagement'),
+                    ['class' => 'block_student_engagement-report-link']
+                ),
+                'block_student_engagement-actions'
+            );
+        }
         $content .= html_writer::div(implode('', $cards), 'block_student_engagement-grid');
         $content .= $footer;
         $content .= html_writer::end_div();
@@ -97,6 +108,7 @@ class block_student_engagement_renderer extends plugin_renderer_base {
      * @param string $value
      * @param string $meta
      * @param bool $isempty
+     * @param string $valueclass
      * @return string
      */
     private function metric_card(
@@ -105,16 +117,22 @@ class block_student_engagement_renderer extends plugin_renderer_base {
         string $label,
         string $value,
         string $meta,
-        bool $isempty = false
+        bool $isempty = false,
+        string $valueclass = ''
     ): string {
         $classes = 'block_student_engagement-card block_student_engagement-card--' . $modifier;
         if ($isempty) {
             $classes .= ' block_student_engagement-empty';
         }
 
+        $valueclasses = 'block_student_engagement-card__value';
+        if ($valueclass !== '') {
+            $valueclasses .= ' ' . $valueclass;
+        }
+
         $content = html_writer::div($this->pix_icon($icon, ''), 'block_student_engagement-card__icon');
         $content .= html_writer::div(s($label), 'block_student_engagement-card__label');
-        $content .= html_writer::div($value, 'block_student_engagement-card__value');
+        $content .= html_writer::div($value, $valueclasses);
         $content .= html_writer::div(s($meta), 'block_student_engagement-card__meta');
 
         return html_writer::div($content, $classes);
@@ -156,4 +174,3 @@ class block_student_engagement_renderer extends plugin_renderer_base {
         return html_writer::div($content, $classes);
     }
 }
-
