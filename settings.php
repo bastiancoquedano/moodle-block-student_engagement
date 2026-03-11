@@ -40,4 +40,12 @@ if ($ADMIN->fulltree) {
         14,
         PARAM_INT
     ));
+
+    $settings->add(new admin_setting_configtext(
+        'block_student_engagement/report_event_goal',
+        get_string('report_event_goal', 'block_student_engagement'),
+        get_string('report_event_goal_desc', 'block_student_engagement'),
+        30,
+        PARAM_INT
+    ));
 }

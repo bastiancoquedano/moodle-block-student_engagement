@@ -103,6 +103,8 @@ class block_student_engagement extends block_base {
      * @return stdClass
      */
     private function prepare_dashboard_data(stdClass $cache): stdClass {
+        global $COURSE;
+
         $data = new stdClass();
         $data->title = get_string('pluginname', 'block_student_engagement');
         $data->subtitle = get_string('dashboard_subtitle', 'block_student_engagement');
@@ -115,8 +117,31 @@ class block_student_engagement extends block_base {
         $data->inactive_users = $this->resolve_inactive_user_names($cache);
         $data->has_inactive_users = !empty($data->inactive_users);
         $data->last_calculated = !empty($cache->last_calculated) ? userdate((int)$cache->last_calculated) : '-';
+        $data->has_report_link = $this->can_view_report($COURSE ?? null);
+        $data->report_url = $data->has_report_link
+            ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id])
+            : null;
 
         return $data;
+    }
+
+    /**
+     * Check whether the current user can open the detailed report.
+     *
+     * @param stdClass|null $course
+     * @return bool
+     */
+    private function can_view_report(?stdClass $course): bool {
+        if (!$course || empty($course->id) || (int)$course->id <= 0 || (int)$course->id === SITEID) {
+            return false;
+        }
+
+        $coursecontext = context_course::instance((int)$course->id, IGNORE_MISSING);
+        if (!$coursecontext) {
+            return false;
+        }
+
+        return has_capability('block/student_engagement:viewreport', $coursecontext);
     }
 
     /**

@@ -28,11 +28,15 @@ The plugin reads activity signals from Moodle data sources, calculates engagemen
 
 ### Block overview
 
-Placeholder: add a screenshot showing the final block render inside a course page.
+Student engagement summary block rendered inside a course page.
 
-### Scheduled task / admin configuration
+![Block overview](docs/screenshots/block-overview.png)
 
-Placeholder: add a screenshot showing plugin settings and the scheduled task registered in Moodle.
+### Participation report
+
+Detailed participation report with per-student events, completed activities, and engagement score.
+
+![Participation report](docs/screenshots/report-overview.png)
 
 ## Metric calculation
 
@@ -56,6 +60,23 @@ Where:
 - `completed` = completed activities from `course_modules_completion`
 
 This score is implemented as a reusable service method for future reporting and UI improvements.
+
+## Detailed participation report
+
+The plugin now includes a course-level participation report accessible from the block via
+`View participation report`.
+
+The report displays one row per student with:
+
+- total course events
+- completed activities shown as `X / total`
+- engagement score shown as `NN / 100`
+
+Report score formula:
+
+- completed activities contribute up to `70` points
+- course events contribute up to `30` points
+- the event contribution uses the configurable admin setting `report_event_goal`
 
 ## Cache strategy and scheduled task
 
