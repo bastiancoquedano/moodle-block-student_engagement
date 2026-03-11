@@ -39,3 +39,4 @@ $string['active_students'] = 'Estudiantes activos';
 $string['inactive_students'] = 'Estudiantes inactivos';
 $string['most_active_user'] = 'Usuario más activo';
 $string['last_calculated'] = 'Último cálculo';
+$string['task_calculate_engagement'] = 'Calcular y refrescar cache de engagement';
