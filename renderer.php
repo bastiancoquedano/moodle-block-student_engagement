@@ -81,6 +81,16 @@ class block_student_engagement_renderer extends plugin_renderer_base {
 
         $content = html_writer::start_div('block_student_engagement-dashboard');
         $content .= $header;
+        if (!empty($data->has_report_link) && !empty($data->report_url)) {
+            $content .= html_writer::div(
+                html_writer::link(
+                    $data->report_url,
+                    get_string('view_engagement_report', 'block_student_engagement'),
+                    ['class' => 'block_student_engagement-report-link']
+                ),
+                'block_student_engagement-actions'
+            );
+        }
         $content .= html_writer::div(implode('', $cards), 'block_student_engagement-grid');
         $content .= $footer;
         $content .= html_writer::end_div();
@@ -156,4 +166,3 @@ class block_student_engagement_renderer extends plugin_renderer_base {
         return html_writer::div($content, $classes);
     }
 }
-

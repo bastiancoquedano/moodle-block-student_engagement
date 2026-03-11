@@ -57,6 +57,23 @@ Where:
 
 This score is implemented as a reusable service method for future reporting and UI improvements.
 
+## Detailed participation report
+
+The plugin now includes a course-level participation report accessible from the block via
+`View participation report`.
+
+The report displays one row per student with:
+
+- total course events
+- completed activities shown as `X / total`
+- engagement score shown as `NN / 100`
+
+Report score formula:
+
+- completed activities contribute up to `70` points
+- course events contribute up to `30` points
+- the event contribution uses the configurable admin setting `report_event_goal`
+
 ## Cache strategy and scheduled task
 
 The plugin avoids reading logs directly during block rendering.
