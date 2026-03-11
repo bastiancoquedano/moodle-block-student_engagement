@@ -28,6 +28,9 @@ $string['student_engagement:myaddinstance'] = 'Agregar un nuevo bloque de Partic
 $string['student_engagement:view'] = 'Ver bloque de Participación estudiantil';
 $string['contentnotready'] = 'Las métricas de participación aún no están disponibles.';
 $string['cachenotavailable'] = 'Las métricas de participación aún no se han calculado para este curso.';
+$string['dashboard_subtitle'] = 'Resumen de engagement cacheado para revision rapida docente.';
+$string['dashboard_active_caption'] = 'Estudiantes con actividad reciente.';
+$string['dashboard_inactive_caption'] = 'Estudiantes sin actividad reciente.';
 $string['nopermissions'] = 'No tienes permisos para ver este bloque.';
 
 $string['active_days_threshold'] = 'Umbral de días activos';
@@ -36,7 +39,12 @@ $string['inactive_days_threshold'] = 'Umbral de días de inactividad';
 $string['inactive_days_threshold_desc'] = 'Número de días sin actividad para considerar a un estudiante inactivo.';
 
 $string['active_students'] = 'Estudiantes activos';
+$string['active_students_7_days'] = 'Estudiantes activos (7 dias)';
 $string['inactive_students'] = 'Estudiantes inactivos';
+$string['inactive_students_over_threshold'] = 'Estudiantes inactivos > 14 dias';
 $string['most_active_user'] = 'Usuario más activo';
+$string['most_active_interactions'] = 'Interacciones: {$a}';
+$string['no_inactive_students'] = 'No se encontraron estudiantes inactivos.';
+$string['no_most_active_user'] = 'No hay un estudiante activo disponible.';
 $string['last_calculated'] = 'Último cálculo';
 $string['task_calculate_engagement'] = 'Calcular y refrescar cache de engagement';
