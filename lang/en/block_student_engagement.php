@@ -28,6 +28,9 @@ $string['student_engagement:myaddinstance'] = 'Add a new Student Engagement bloc
 $string['student_engagement:view'] = 'View Student Engagement block';
 $string['contentnotready'] = 'Engagement metrics are not available yet.';
 $string['cachenotavailable'] = 'Engagement metrics have not been calculated for this course yet.';
+$string['dashboard_subtitle'] = 'Cached engagement overview for quick teacher review.';
+$string['dashboard_active_caption'] = 'Students with recent activity.';
+$string['dashboard_inactive_caption'] = 'Students without recent activity.';
 $string['nopermissions'] = 'You do not have permission to view this block.';
 
 $string['active_days_threshold'] = 'Active days threshold';
