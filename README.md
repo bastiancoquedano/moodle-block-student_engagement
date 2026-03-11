@@ -28,11 +28,15 @@ The plugin reads activity signals from Moodle data sources, calculates engagemen
 
 ### Block overview
 
-Placeholder: add a screenshot showing the final block render inside a course page.
+Student engagement summary block rendered inside a course page.
 
-### Scheduled task / admin configuration
+![Block overview](docs/screenshots/block-overview.png)
 
-Placeholder: add a screenshot showing plugin settings and the scheduled task registered in Moodle.
+### Participation report
+
+Detailed participation report with per-student events, completed activities, and engagement score.
+
+![Participation report](docs/screenshots/report-overview.png)
 
 ## Metric calculation
 
