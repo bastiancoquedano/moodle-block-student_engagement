@@ -142,13 +142,24 @@ class report_table extends \table_sql {
     }
 
     /**
+     * Render events column.
+     *
+     * @param \stdClass $row
+     * @return string
+     */
+    public function col_eventcount($row): string {
+        return (int)$row->eventcount . ' (' . (int)$row->eventprogress . '%)';
+    }
+
+    /**
      * Render completion column.
      *
      * @param \stdClass $row
      * @return string
      */
     public function col_completedcount($row): string {
-        return (int)$row->completedcount . ' / ' . (int)$row->totalactivities;
+        return (int)$row->completedcount . ' / ' . (int)$row->totalactivities .
+            ' (' . (int)$row->completedprogress . '%)';
     }
 
     /**

@@ -132,11 +132,14 @@ class engagement_report {
         $records = $DB->get_records_sql($sql, $params, $limitfrom, $limitnum ?: 0);
         foreach ($records as $record) {
             $record->totalactivities = $totalactivities;
+            $record->eventgoal = $eventgoal;
             $record->profileurl = new \moodle_url('/user/profile.php', [
                 'id' => (int)$record->userid,
                 'course' => $courseid,
             ]);
             $record->studentname = fullname($record);
+            $record->eventprogress = self::calculate_progress((int)$record->eventcount, (int)$eventgoal);
+            $record->completedprogress = self::calculate_progress((int)$record->completedcount, (int)$totalactivities);
             $record->engagementscore = max(0, min(100, (int)$record->engagementscore));
             $record->engagementlevel = self::resolve_level((int)$record->engagementscore);
         }
@@ -226,5 +229,21 @@ class engagement_report {
                         ELSE (COALESCE(events.eventcount, 0) * 30.0 / :eventgoalscale)
                     END),
                 0)";
+    }
+
+    /**
+     * Calculate integer progress percent with a 100% cap.
+     *
+     * @param int $value
+     * @param int $goal
+     * @return int
+     */
+    private static function calculate_progress(int $value, int $goal): int {
+        if ($goal <= 0) {
+            return 0;
+        }
+
+        $progress = (int)round(($value * 100) / $goal);
+        return max(0, min(100, $progress));
     }
 }
