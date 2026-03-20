@@ -36,53 +36,112 @@ class report_table extends \table_sql {
 
     /** @var int */
     private $courseid;
+    /** @var string */
+    private $viewmode;
 
     /**
      * Constructor.
      *
      * @param int $courseid
      * @param \moodle_url $baseurl
+     * @param string $viewmode
      */
-    public function __construct(int $courseid, \moodle_url $baseurl) {
+    public function __construct(int $courseid, \moodle_url $baseurl, string $viewmode = 'all') {
         parent::__construct('block-student-engagement-report-' . $courseid);
 
         $this->courseid = $courseid;
+        $this->viewmode = ($viewmode === 'inactive') ? 'inactive' : 'all';
+        $isinactiveview = ($this->viewmode === 'inactive');
+        $thresholdvalue = get_config('block_student_engagement', 'inactive_days_threshold');
+        $inactivedays = ($thresholdvalue === false || $thresholdvalue === null || $thresholdvalue === '')
+            ? 14
+            : (int)$thresholdvalue;
+        $inactivedays = max(0, $inactivedays);
 
-        $this->define_columns(['student', 'eventcount', 'completedcount', 'engagementscore']);
-        $this->define_headers([
+        $columns = ['student', 'eventcount', 'completedcount', 'engagementscore'];
+        $headers = [
             get_string('report_student', 'block_student_engagement'),
             get_string('report_events', 'block_student_engagement'),
             get_string('report_completed', 'block_student_engagement'),
             get_string('report_score', 'block_student_engagement'),
-        ]);
+        ];
+        if ($isinactiveview) {
+            $columns = ['student', 'daysinactive', 'lastaccess'];
+            $headers = [
+                get_string('report_student', 'block_student_engagement'),
+                get_string('report_days_inactive', 'block_student_engagement'),
+                get_string('report_last_course_access', 'block_student_engagement'),
+            ];
+        }
+        $this->define_columns($columns);
+        $this->define_headers($headers);
         $this->define_baseurl($baseurl);
 
         $this->column_class('student', 'col-student');
-        $this->column_class('eventcount', 'col-events');
-        $this->column_class('completedcount', 'col-completed');
-        $this->column_class('engagementscore', 'col-score');
+        if ($isinactiveview) {
+            $this->column_class('daysinactive', 'col-days-inactive');
+            $this->column_class('lastaccess', 'col-last-access');
+        }
+        if (!$isinactiveview) {
+            $this->column_class('eventcount', 'col-events');
+            $this->column_class('completedcount', 'col-completed');
+            $this->column_class('engagementscore', 'col-score');
+        }
 
-        $this->sortable(true, 'engagementscore', SORT_DESC);
+        $defaultsort = $isinactiveview ? 'daysinactive' : 'engagementscore';
+        $defaultsortdir = SORT_DESC;
+        $this->sortable(true, $defaultsort, $defaultsortdir);
         $this->set_attribute('class', 'generaltable');
         $this->collapsible(false);
         $this->pageable(true);
         $this->pagesize(25, 0);
-        $this->set_count_sql(
-            "SELECT COUNT(DISTINCT ra.userid)
-               FROM {role_assignments} ra
-               JOIN {context} ctx ON ctx.id = ra.contextid
-               JOIN {role} r ON r.id = ra.roleid
-               JOIN {user} u ON u.id = ra.userid
-              WHERE ctx.contextlevel = :contextcourse
-                AND ctx.instanceid = :courseid
-                AND r.shortname = :studentshortname
-                AND u.deleted = 0",
-            [
-                'contextcourse' => CONTEXT_COURSE,
-                'courseid' => $courseid,
-                'studentshortname' => 'student',
-            ]
-        );
+        if ($isinactiveview) {
+            $this->set_count_sql(
+                "SELECT COUNT(DISTINCT ra.userid)
+                   FROM {role_assignments} ra
+                   JOIN {context} ctx ON ctx.id = ra.contextid
+                   JOIN {role} r ON r.id = ra.roleid
+                   JOIN {user} u ON u.id = ra.userid
+              LEFT JOIN (
+                         SELECT l.userid, MAX(l.timecreated) AS lastactivity
+                           FROM {logstore_standard_log} l
+                          WHERE l.courseid = :activitycourseid
+                            AND l.userid > 0
+                            AND l.eventname <> :courseviewed
+                       GROUP BY l.userid
+                        ) activity ON activity.userid = ra.userid
+                  WHERE ctx.contextlevel = :contextcourse
+                    AND ctx.instanceid = :courseid
+                    AND r.shortname = :studentshortname
+                    AND u.deleted = 0
+                    AND (activity.lastactivity IS NULL OR activity.lastactivity < :inactivesince)",
+                [
+                    'activitycourseid' => $courseid,
+                    'courseviewed' => '\\core\\event\\course_viewed',
+                    'contextcourse' => CONTEXT_COURSE,
+                    'courseid' => $courseid,
+                    'studentshortname' => 'student',
+                    'inactivesince' => time() - ($inactivedays * DAYSECS),
+                ]
+            );
+        } else {
+            $this->set_count_sql(
+                "SELECT COUNT(DISTINCT ra.userid)
+                   FROM {role_assignments} ra
+                   JOIN {context} ctx ON ctx.id = ra.contextid
+                   JOIN {role} r ON r.id = ra.roleid
+                   JOIN {user} u ON u.id = ra.userid
+                  WHERE ctx.contextlevel = :contextcourse
+                    AND ctx.instanceid = :courseid
+                    AND r.shortname = :studentshortname
+                    AND u.deleted = 0",
+                [
+                    'contextcourse' => CONTEXT_COURSE,
+                    'courseid' => $courseid,
+                    'studentshortname' => 'student',
+                ]
+            );
+        }
         $this->set_sql('', '', '', []);
     }
 
@@ -94,7 +153,7 @@ class report_table extends \table_sql {
      * @return void
      */
     public function query_db($pagesize, $useinitialsbar = true) {
-        $total = \block_student_engagement\engagement_report::count_students($this->courseid);
+        $total = \block_student_engagement\engagement_report::count_rows($this->courseid, $this->viewmode);
         if (!$this->is_downloading()) {
             $this->pagesize($pagesize, $total);
         }
@@ -108,12 +167,13 @@ class report_table extends \table_sql {
             $direction = strtoupper($parts[1] ?? 'ASC');
         }
 
-        $ordersql = \block_student_engagement\engagement_report::get_sort_sql($sortcolumn, $direction);
+        $ordersql = \block_student_engagement\engagement_report::get_sort_sql($sortcolumn, $direction, $this->viewmode);
         $this->rawdata = \block_student_engagement\engagement_report::get_rows(
             $this->courseid,
             $ordersql,
             $this->get_page_start(),
-            $this->get_page_size()
+            $this->get_page_size(),
+            $this->viewmode
         );
     }
 
@@ -139,6 +199,34 @@ class report_table extends \table_sql {
             s($row->studentname),
             ['class' => 'student-link']
         );
+    }
+
+    /**
+     * Render days inactive column.
+     *
+     * @param \stdClass $row
+     * @return string
+     */
+    public function col_daysinactive($row): string {
+        if ($row->daysinactive === null) {
+            return '-';
+        }
+
+        return (string)(int)$row->daysinactive;
+    }
+
+    /**
+     * Render last access column.
+     *
+     * @param \stdClass $row
+     * @return string
+     */
+    public function col_lastaccess($row): string {
+        if (empty($row->lastaccesstimestamp)) {
+            return get_string('report_never', 'block_student_engagement');
+        }
+
+        return userdate((int)$row->lastaccesstimestamp);
     }
 
     /**

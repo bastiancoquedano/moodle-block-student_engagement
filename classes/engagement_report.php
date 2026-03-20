@@ -33,6 +33,8 @@ class engagement_report {
 
     /** @var string Student role shortname. */
     private const STUDENT_ROLE_SHORTNAME = 'student';
+    /** @var string Event name excluded from inactivity activity checks. */
+    private const EVENT_COURSE_VIEWED = '\\core\\event\\course_viewed';
 
     /**
      * Count students in a course.
@@ -62,6 +64,51 @@ class engagement_report {
     }
 
     /**
+     * Count rows for a report mode.
+     *
+     * @param int $courseid
+     * @param string $viewmode
+     * @return int
+     */
+    public static function count_rows(int $courseid, string $viewmode = 'all'): int {
+        if ($viewmode !== 'inactive') {
+            return self::count_students($courseid);
+        }
+
+        global $DB;
+
+        $inactivesince = time() - (self::get_inactive_days_threshold() * DAYSECS);
+        $sql = "SELECT COUNT(DISTINCT ra.userid)
+                  FROM {role_assignments} ra
+                  JOIN {context} ctx ON ctx.id = ra.contextid
+                  JOIN {role} r ON r.id = ra.roleid
+                  JOIN {user} u ON u.id = ra.userid
+             LEFT JOIN (
+                        SELECT l.userid, MAX(l.timecreated) AS lastactivity
+                          FROM {logstore_standard_log} l
+                         WHERE l.courseid = :activitycourseid
+                           AND l.userid > 0
+                           AND l.eventname <> :courseviewed
+                      GROUP BY l.userid
+                       ) activity ON activity.userid = ra.userid
+                 WHERE ctx.contextlevel = :contextcourse
+                   AND ctx.instanceid = :courseid
+                   AND r.shortname = :studentshortname
+                   AND u.deleted = 0
+                   AND (activity.lastactivity IS NULL OR activity.lastactivity < :inactivesince)";
+        $params = [
+            'activitycourseid' => $courseid,
+            'courseviewed' => self::EVENT_COURSE_VIEWED,
+            'contextcourse' => CONTEXT_COURSE,
+            'courseid' => $courseid,
+            'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
+            'inactivesince' => $inactivesince,
+        ];
+
+        return (int)$DB->count_records_sql($sql, $params);
+    }
+
+    /**
      * Return report rows for a course.
      *
      * @param int $courseid
@@ -70,9 +117,16 @@ class engagement_report {
      * @param int $limitnum
      * @return \stdClass[]
      */
-    public static function get_rows(int $courseid, string $sort, int $limitfrom = 0, int $limitnum = 0): array {
+    public static function get_rows(
+        int $courseid,
+        string $sort,
+        int $limitfrom = 0,
+        int $limitnum = 0,
+        string $viewmode = 'all'
+    ): array {
         global $DB;
 
+        $isinactiveview = ($viewmode === 'inactive');
         $totalactivities = self::get_total_completable_activities($courseid);
         $eventgoal = self::get_event_goal();
         $params = [
@@ -80,12 +134,20 @@ class engagement_report {
             'maincourseid' => $courseid,
             'eventcourseid' => $courseid,
             'completioncourseid' => $courseid,
+            'lastaccesscourseid' => $courseid,
+            'activitycourseid' => $courseid,
             'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
+            'courseviewed' => self::EVENT_COURSE_VIEWED,
             'eventgoalcompare' => max(1, $eventgoal),
             'eventgoalscale' => max(1, $eventgoal),
             'totalactivitiescheck' => $totalactivities,
             'totalactivitiesscale' => $totalactivities,
         ];
+        $inactivewhere = '';
+        if ($isinactiveview) {
+            $params['inactivesince'] = time() - (self::get_inactive_days_threshold() * DAYSECS);
+            $inactivewhere = ' AND (activity.lastactivity IS NULL OR activity.lastactivity < :inactivesince)';
+        }
 
         $scoreexpression = self::get_score_sql();
         $sql = "SELECT students.userid,
@@ -99,6 +161,7 @@ class engagement_report {
                        u.firstname AS studentfirstname,
                        COALESCE(events.eventcount, 0) AS eventcount,
                        COALESCE(completed.completedcount, 0) AS completedcount,
+                       COALESCE(lastaccess.lastcourseaccess, 0) AS lastcourseaccess,
                        {$scoreexpression} AS engagementscore
                   FROM (
                         SELECT DISTINCT ra.userid
@@ -126,7 +189,23 @@ class engagement_report {
                            AND c.completionstate <> 0
                       GROUP BY c.userid
                        ) completed ON completed.userid = students.userid
+             LEFT JOIN (
+                        SELECT l.userid, MAX(l.timecreated) AS lastcourseaccess
+                          FROM {logstore_standard_log} l
+                         WHERE l.courseid = :lastaccesscourseid
+                           AND l.userid > 0
+                      GROUP BY l.userid
+                       ) lastaccess ON lastaccess.userid = students.userid
+             LEFT JOIN (
+                        SELECT l.userid, MAX(l.timecreated) AS lastactivity
+                          FROM {logstore_standard_log} l
+                         WHERE l.courseid = :activitycourseid
+                           AND l.userid > 0
+                           AND l.eventname <> :courseviewed
+                      GROUP BY l.userid
+                       ) activity ON activity.userid = students.userid
                  WHERE u.deleted = 0
+                   {$inactivewhere}
               ORDER BY {$sort}";
 
         $records = $DB->get_records_sql($sql, $params, $limitfrom, $limitnum ?: 0);
@@ -138,6 +217,10 @@ class engagement_report {
                 'course' => $courseid,
             ]);
             $record->studentname = fullname($record);
+            $record->lastaccesstimestamp = !empty($record->lastcourseaccess) ? (int)$record->lastcourseaccess : null;
+            $record->daysinactive = ($record->lastaccesstimestamp === null)
+                ? null
+                : max(0, (int)floor((time() - (int)$record->lastaccesstimestamp) / DAYSECS));
             $record->eventprogress = self::calculate_progress((int)$record->eventcount, (int)$eventgoal);
             $record->completedprogress = self::calculate_progress((int)$record->completedcount, (int)$totalactivities);
             $record->engagementscore = max(0, min(100, (int)$record->engagementscore));
@@ -199,8 +282,19 @@ class engagement_report {
      * @param string $dir
      * @return string
      */
-    public static function get_sort_sql(string $sort, string $dir): string {
+    public static function get_sort_sql(string $sort, string $dir, string $viewmode = 'all'): string {
         $direction = strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
+        if ($viewmode === 'inactive') {
+            $inversedirection = ($direction === 'DESC') ? 'ASC' : 'DESC';
+            $map = [
+                'student' => 'student ' . $direction . ', studentfirstname ' . $direction,
+                'daysinactive' => 'lastcourseaccess ' . $inversedirection . ', student ASC, studentfirstname ASC',
+                'lastaccess' => 'lastcourseaccess ' . $direction . ', student ASC, studentfirstname ASC',
+            ];
+
+            return $map[$sort] ?? $map['daysinactive'];
+        }
+
         $map = [
             'student' => 'student ' . $direction . ', studentfirstname ' . $direction,
             'eventcount' => 'eventcount ' . $direction . ', student ASC, studentfirstname ASC',
@@ -245,5 +339,16 @@ class engagement_report {
 
         $progress = (int)round(($value * 100) / $goal);
         return max(0, min(100, $progress));
+    }
+
+    /**
+     * Get configured inactive days threshold (default 14).
+     *
+     * @return int
+     */
+    private static function get_inactive_days_threshold(): int {
+        $value = get_config('block_student_engagement', 'inactive_days_threshold');
+        $days = ($value === false || $value === null || $value === '') ? 14 : (int)$value;
+        return max(0, $days);
     }
 }
