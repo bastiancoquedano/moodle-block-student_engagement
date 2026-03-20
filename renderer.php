@@ -129,7 +129,6 @@ class block_student_engagement_renderer extends plugin_renderer_base {
         if ($valueclass !== '') {
             $valueclasses .= ' ' . $valueclass;
         }
-        $valueclasses .= ' block_student_engagement-truncate-1';
 
         $content = html_writer::div($this->pix_icon($icon, ''), 'block_student_engagement-card__icon');
         $content .= html_writer::div(s($label), 'block_student_engagement-card__label');
@@ -165,7 +164,7 @@ class block_student_engagement_renderer extends plugin_renderer_base {
         foreach ($data->inactive_users as $name) {
             $namecontent = html_writer::span(
                 s($name),
-                'block_student_engagement-list__text block_student_engagement-truncate-1',
+                'block_student_engagement-list__text',
                 ['title' => $name]
             );
             $items[] = html_writer::tag('li', $namecontent, [
