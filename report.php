@@ -25,6 +25,8 @@
 require_once(__DIR__ . '/../../config.php');
 
 $courseid = required_param('courseid', PARAM_INT);
+$view = optional_param('view', 'all', PARAM_ALPHA);
+$view = ($view === 'inactive') ? 'inactive' : 'all';
 
 $course = get_course($courseid);
 require_login($course);
@@ -32,38 +34,46 @@ require_login($course);
 $context = context_course::instance($courseid);
 require_capability('block/student_engagement:viewreport', $context);
 
-$url = new moodle_url('/blocks/student_engagement/report.php', ['courseid' => $courseid]);
+$urlparams = ['courseid' => $courseid];
+if ($view === 'inactive') {
+    $urlparams['view'] = 'inactive';
+}
+$url = new moodle_url('/blocks/student_engagement/report.php', $urlparams);
 $PAGE->set_url($url);
 $PAGE->set_pagelayout('report');
 $PAGE->set_context($context);
-$PAGE->set_title(get_string('report_title', 'block_student_engagement'));
+$titlestring = ($view === 'inactive') ? 'report_inactive_title' : 'report_title';
+$subtitlestring = ($view === 'inactive') ? 'report_inactive_subtitle' : 'report_subtitle';
+$formulastring = ($view === 'inactive') ? 'report_inactive_formula' : 'report_formula';
+$PAGE->set_title(get_string($titlestring, 'block_student_engagement'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->requires->css('/blocks/student_engagement/styles.css');
 
-$studentcount = \block_student_engagement\engagement_report::count_students($courseid);
+$studentcount = \block_student_engagement\engagement_report::count_rows($courseid, $view);
 
 echo $OUTPUT->header();
 
 echo html_writer::start_div('block_student_engagement-report');
 echo html_writer::start_div('block_student_engagement-report__header');
 echo html_writer::div(
-    $OUTPUT->pix_icon('i/report', '') . get_string('report_title', 'block_student_engagement'),
+    $OUTPUT->pix_icon('i/report', '') . get_string($titlestring, 'block_student_engagement'),
     'block_student_engagement-report__title'
 );
 echo html_writer::div(
-    get_string('report_subtitle', 'block_student_engagement', format_string($course->fullname)),
+    get_string($subtitlestring, 'block_student_engagement', format_string($course->fullname)),
     'block_student_engagement-report__subtitle'
 );
 echo html_writer::div(
-    get_string('report_formula', 'block_student_engagement'),
+    get_string($formulastring, 'block_student_engagement'),
     'block_student_engagement-report__formula'
 );
 echo html_writer::end_div();
 
 if ($studentcount === 0) {
-    echo $OUTPUT->notification(get_string('report_no_students', 'block_student_engagement'), 'info');
+    $emptystring = ($view === 'inactive') ? 'report_no_inactive_students' : 'report_no_students';
+    echo $OUTPUT->notification(get_string($emptystring, 'block_student_engagement'), 'info');
 } else {
-    $table = new \block_student_engagement\output\report_table($courseid, $url);
+    $table = new \block_student_engagement\output\report_table($courseid, $url, $view);
     ob_start();
     $table->out(25, true);
     $tablehtml = ob_get_clean();
