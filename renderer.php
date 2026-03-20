@@ -64,7 +64,7 @@ class block_student_engagement_renderer extends plugin_renderer_base {
             'highlight',
             't/award',
             get_string('most_active_user', 'block_student_engagement'),
-            s($data->most_active_user),
+            $data->most_active_user,
             get_string('most_active_interactions', 'block_student_engagement', $data->most_active_interactions),
             !$data->has_most_active_user,
             'block_student_engagement-card__value--person'
@@ -129,10 +129,11 @@ class block_student_engagement_renderer extends plugin_renderer_base {
         if ($valueclass !== '') {
             $valueclasses .= ' ' . $valueclass;
         }
+        $valueclasses .= ' block_student_engagement-truncate-1';
 
         $content = html_writer::div($this->pix_icon($icon, ''), 'block_student_engagement-card__icon');
         $content .= html_writer::div(s($label), 'block_student_engagement-card__label');
-        $content .= html_writer::div($value, $valueclasses);
+        $content .= html_writer::div(s($value), $valueclasses, ['title' => $value]);
         $content .= html_writer::div(s($meta), 'block_student_engagement-card__meta');
 
         return html_writer::div($content, $classes);
@@ -162,7 +163,15 @@ class block_student_engagement_renderer extends plugin_renderer_base {
 
         $items = [];
         foreach ($data->inactive_users as $name) {
-            $items[] = html_writer::tag('li', s($name), ['class' => 'block_student_engagement-list__item']);
+            $namecontent = html_writer::span(
+                s($name),
+                'block_student_engagement-list__text block_student_engagement-truncate-1',
+                ['title' => $name]
+            );
+            $items[] = html_writer::tag('li', $namecontent, [
+                'class' => 'block_student_engagement-list__item',
+                'title' => $name,
+            ]);
         }
 
         $content .= html_writer::tag(
@@ -170,6 +179,16 @@ class block_student_engagement_renderer extends plugin_renderer_base {
             implode('', $items),
             ['class' => 'block_student_engagement-list']
         );
+        if (!empty($data->has_report_link) && !empty($data->inactive_report_url)) {
+            $content .= html_writer::div(
+                html_writer::link(
+                    $data->inactive_report_url,
+                    get_string('view_inactive_users_report', 'block_student_engagement'),
+                    ['class' => 'block_student_engagement-inactive-link']
+                ),
+                'block_student_engagement-card__meta'
+            );
+        }
 
         return html_writer::div($content, $classes);
     }
