@@ -28,6 +28,7 @@ require_once($CFG->dirroot . '/group/lib.php');
 $courseid = required_param('courseid', PARAM_INT);
 $view = optional_param('view', 'all', PARAM_ALPHA);
 $view = in_array($view, ['all', 'inactive', 'atrisk'], true) ? $view : 'all';
+$export = optional_param('export', '', PARAM_ALPHA);
 
 $risklevelraw = optional_param('risklevel', 'all', PARAM_RAW_TRIMMED);
 $risklevelraw = trim((string)$risklevelraw);
@@ -131,6 +132,10 @@ if ($datetoinput !== '') {
 }
 
 $url = new moodle_url('/blocks/student_engagement/report.php', $urlparams);
+$exportparams = $urlparams;
+$exportparams['export'] = 'excel';
+$exportparams['sesskey'] = sesskey();
+$exporturl = new moodle_url('/blocks/student_engagement/report.php', $exportparams);
 $PAGE->set_url($url);
 $PAGE->set_pagelayout('report');
 $PAGE->set_context($context);
@@ -144,6 +149,81 @@ $PAGE->set_heading(format_string($course->fullname));
 $PAGE->requires->css('/blocks/student_engagement/styles.css');
 
 $studentcount = \block_student_engagement\engagement_report::count_rows($courseid, $effectiveview, $filters);
+
+if ($export === 'excel') {
+    require_sesskey();
+
+    $defaultsort = ($legacyinactive) ? 'daysinactive' : 'risklevel';
+    $defaultdir = 'DESC';
+    $ordersql = \block_student_engagement\engagement_report::get_sort_sql($defaultsort, $defaultdir, $effectiveview);
+    $rows = \block_student_engagement\engagement_report::get_rows(
+        $courseid,
+        $ordersql,
+        0,
+        0,
+        $effectiveview,
+        $filters
+    );
+
+    $legacyexport = \block_student_engagement\output\report_table::is_legacy_inactive_view($view, $filters);
+    $headers = \block_student_engagement\output\report_table::get_export_headers($legacyexport);
+    $colcount = max(2, count($headers));
+    $padrow = static function(array $row) use ($colcount): array {
+        return array_pad($row, $colcount, '');
+    };
+
+    \core_php_time_limit::raise();
+    \core\session\manager::write_close();
+    \core_form\util::form_download_complete();
+
+    $filenamebase = 'student_engagement_report_' . $courseid . '_' . userdate(time(), '%Y%m%d_%H%M%S');
+    $writer = \OpenSpout\Writer\Common\Creator\WriterFactory::createFromFile($filenamebase . '.xlsx');
+    if (method_exists($writer->getOptions(), 'setTempFolder')) {
+        $writer->getOptions()->setTempFolder(make_request_directory());
+    }
+    $writer->openToBrowser($filenamebase . '.xlsx');
+
+    if ($writer instanceof \OpenSpout\Writer\AbstractWriterMultiSheets) {
+        $sheettitle = core_text::substr(format_string($course->shortname), 0, 31);
+        $writer->getCurrentSheet()->setName($sheettitle);
+    }
+
+    $boldcenterstyle = (new \OpenSpout\Common\Entity\Style\Style())
+        ->setFontBold()
+        ->setCellAlignment(\OpenSpout\Common\Entity\Style\CellAlignment::CENTER);
+
+    $writer->addRow(
+        \OpenSpout\Common\Entity\Row::fromValues(
+            $padrow([get_string('export_metadata_generated_at', 'block_student_engagement'), userdate(time(), '%Y-%m-%d %H:%M:%S')]),
+            $boldcenterstyle
+        )
+    );
+    $writer->addRow(
+        \OpenSpout\Common\Entity\Row::fromValues(
+            $padrow([get_string('export_metadata_course', 'block_student_engagement'), format_string($course->fullname) . ' (#' . $courseid . ')']),
+            $boldcenterstyle
+        )
+    );
+    $writer->addRow(
+        \OpenSpout\Common\Entity\Row::fromValues(
+            $padrow([get_string('export_metadata_exported_by', 'block_student_engagement'), fullname($USER) . ' (' . $USER->username . ' #' . $USER->id . ')']),
+            $boldcenterstyle
+        )
+    );
+    $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues(array_fill(0, $colcount, '')));
+    $writer->addRow(\OpenSpout\Common\Entity\Row::fromValues($padrow($headers), $boldcenterstyle));
+
+    foreach ($rows as $row) {
+        $writer->addRow(
+            \OpenSpout\Common\Entity\Row::fromValues(
+                $padrow(\block_student_engagement\output\report_table::format_export_row($row, $legacyexport))
+            )
+        );
+    }
+
+    $writer->close();
+    exit;
+}
 
 echo $OUTPUT->header();
 
@@ -321,6 +401,15 @@ if ($studentcount === 0) {
     $tablehtml = ob_get_clean();
     echo html_writer::div($tablehtml, 'block_student_engagement-report__table');
 }
+
+echo html_writer::div(
+    html_writer::link(
+        $exporturl,
+        get_string('export_excel', 'block_student_engagement'),
+        ['class' => 'btn btn-primary block_student_engagement-report__export']
+    ),
+    'block_student_engagement-report__export-wrap'
+);
 
 echo html_writer::end_div();
 
