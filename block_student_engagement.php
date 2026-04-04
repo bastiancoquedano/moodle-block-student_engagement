@@ -121,9 +121,9 @@ class block_student_engagement extends block_base {
         $data->inactive_report_url = $data->has_report_link
             ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id, 'view' => 'inactive'])
             : null;
-        // Risk quick access defaults to critical level only.
+        // Risk quick access defaults to "at risk" cohort (high + critical).
         $data->risk_report_url = $data->has_report_link
-            ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id, 'risklevel' => '3'])
+            ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id, 'view' => 'atrisk'])
             : null;
 
         return $data;

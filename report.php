@@ -27,12 +27,14 @@ require_once($CFG->dirroot . '/group/lib.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 $view = optional_param('view', 'all', PARAM_ALPHA);
-$view = ($view === 'inactive') ? 'inactive' : 'all';
+$view = in_array($view, ['all', 'inactive', 'atrisk'], true) ? $view : 'all';
 
 $risklevelraw = optional_param('risklevel', 'all', PARAM_RAW_TRIMMED);
 $risklevelraw = trim((string)$risklevelraw);
 if ($risklevelraw === 'all') {
     $risklevel = 'all';
+} else if ($risklevelraw === 'high_critical') {
+    $risklevel = 'high_critical';
 } else if (ctype_digit($risklevelraw) && (int)$risklevelraw >= 0 && (int)$risklevelraw <= 3) {
     $risklevel = (string)(int)$risklevelraw;
 } else {
@@ -93,6 +95,7 @@ if ($groupid > 0 && !isset($groups[$groupid])) {
 
 $filters = [
     'risklevel' => $risklevel,
+    'atrisk' => ($view === 'atrisk' && $risklevel === 'all') || $risklevel === 'high_critical',
     'groupid' => $groupid,
     'status' => $status,
     'datefrom' => $datefrom,
@@ -101,13 +104,15 @@ $filters = [
     'datetoinput' => $datetoinput,
 ];
 
-$hascustomfilters = ($risklevel !== 'all' || $groupid > 0 || $status !== 'all' || $datefrom > 0 || $dateto > 0);
+$hascustomfilters = ($risklevel !== 'all' || $view === 'atrisk' || $groupid > 0 || $status !== 'all' || $datefrom > 0 || $dateto > 0);
 $legacyinactive = ($view === 'inactive' && !$hascustomfilters);
 $effectiveview = $legacyinactive ? 'inactive' : 'all';
 
 $urlparams = ['courseid' => $courseid];
 if ($view === 'inactive') {
     $urlparams['view'] = 'inactive';
+} else if ($view === 'atrisk') {
+    $urlparams['view'] = 'atrisk';
 }
 if ($risklevel !== 'all') {
     $urlparams['risklevel'] = $risklevel;
@@ -181,6 +186,7 @@ echo html_writer::label(get_string('filter_risk_level', 'block_student_engagemen
 echo html_writer::start_tag('select', ['name' => 'risklevel', 'id' => 'id_filter_risklevel']);
 $riskoptions = [
     'all' => get_string('filter_all', 'block_student_engagement'),
+    'high_critical' => get_string('filter_risk_level_high_critical', 'block_student_engagement'),
     '0' => get_string('risk_level_label_0', 'block_student_engagement'),
     '1' => get_string('risk_level_label_1', 'block_student_engagement'),
     '2' => get_string('risk_level_label_2', 'block_student_engagement'),
@@ -269,8 +275,16 @@ echo html_writer::end_div();
 
 $activesummary = [];
 if ($risklevel !== 'all') {
-    $risklabel = get_string('risk_level_label_' . (int)$risklevel, 'block_student_engagement');
+    if ($risklevel === 'high_critical') {
+        $risklabel = get_string('filter_risk_level_high_critical', 'block_student_engagement');
+    } else {
+        $risklabel = get_string('risk_level_label_' . (int)$risklevel, 'block_student_engagement');
+    }
     $activesummary[] = get_string('filter_risk_level', 'block_student_engagement') . ': ' . $risklabel;
+} else if ($view === 'atrisk') {
+    $activesummary[] = get_string('filter_risk_level', 'block_student_engagement') . ': ' .
+        get_string('risk_level_label_2', 'block_student_engagement') . ' + ' .
+        get_string('risk_level_label_3', 'block_student_engagement');
 }
 if ($groupid > 0 && isset($groups[$groupid])) {
     $activesummary[] = get_string('filter_group', 'block_student_engagement') . ': ' . format_string($groups[$groupid]->name);
