@@ -68,6 +68,73 @@ function xmldb_block_student_engagement_upgrade(int $oldversion): bool {
         upgrade_block_savepoint(true, 2026031000, 'student_engagement');
     }
 
+    if ($oldversion < 2026040400) {
+        $cachetable = new xmldb_table('block_student_engagement_cache');
+
+        $atriskcount = new xmldb_field('at_risk_count', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($cachetable, $atriskcount)) {
+            $dbman->add_field($cachetable, $atriskcount);
+        }
+
+        $criticalriskcount = new xmldb_field('critical_risk_count', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($cachetable, $criticalriskcount)) {
+            $dbman->add_field($cachetable, $criticalriskcount);
+        }
+
+        $averagecompletion = new xmldb_field('average_completion_percent', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($cachetable, $averagecompletion)) {
+            $dbman->add_field($cachetable, $averagecompletion);
+        }
+
+        $risklastcalculated = new xmldb_field('risk_last_calculated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($cachetable, $risklastcalculated)) {
+            $dbman->add_field($cachetable, $risklastcalculated);
+        }
+
+        $risktable = new xmldb_table('block_student_engagement_risk');
+        $risktable->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $risktable->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $risktable->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $risktable->add_field('current_grade', XMLDB_TYPE_NUMBER, '10,5', null, null, null, null);
+        $risktable->add_field('pass_grade', XMLDB_TYPE_NUMBER, '10,5', null, null, null, null);
+        $risktable->add_field('grade_gap', XMLDB_TYPE_NUMBER, '10,5', null, null, null, null);
+        $risktable->add_field('completion_percent', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $risktable->add_field('days_inactive', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $risktable->add_field('recent_events', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $risktable->add_field('attendance_percent', XMLDB_TYPE_NUMBER, '10,5', null, null, null, null);
+        $risktable->add_field('engagement_score', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $risktable->add_field('risk_score', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $risktable->add_field('risk_level', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $risktable->add_field('risk_flags', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $risktable->add_field('last_calculated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $risktable->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+        if (!$dbman->table_exists($risktable)) {
+            $dbman->create_table($risktable);
+        }
+
+        $courseuserindex = new xmldb_index('course_user_uix', XMLDB_INDEX_UNIQUE, ['courseid', 'userid']);
+        if (!$dbman->index_exists($risktable, $courseuserindex)) {
+            $dbman->add_index($risktable, $courseuserindex);
+        }
+
+        $courserisklevelindex = new xmldb_index('course_risk_level_ix', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'risk_level']);
+        if (!$dbman->index_exists($risktable, $courserisklevelindex)) {
+            $dbman->add_index($risktable, $courserisklevelindex);
+        }
+
+        $courseriskscoreindex = new xmldb_index('course_risk_score_ix', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'risk_score']);
+        if (!$dbman->index_exists($risktable, $courseriskscoreindex)) {
+            $dbman->add_index($risktable, $courseriskscoreindex);
+        }
+
+        $risklastcalcindex = new xmldb_index('last_calculated_ix', XMLDB_INDEX_NOTUNIQUE, ['last_calculated']);
+        if (!$dbman->index_exists($risktable, $risklastcalcindex)) {
+            $dbman->add_index($risktable, $risklastcalcindex);
+        }
+
+        upgrade_block_savepoint(true, 2026040400, 'student_engagement');
+    }
+
     return true;
 }
-

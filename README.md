@@ -91,6 +91,18 @@ Instead:
 
 This architecture keeps the UI responsive and makes the plugin easier to extend with future reporting features.
 
+## Academic risk foundation (v2 core)
+
+The plugin now includes backend foundations for academic risk analysis:
+
+- risk configuration settings (weights, thresholds, course-stage mode)
+- `\block_student_engagement\local\risk_analyser` service for per-student risk
+- risk persistence table: `block_student_engagement_risk`
+- new course-level risk aggregates in `block_student_engagement_cache`
+- cron integration to calculate and persist risk in batch mode
+
+Risk calculations remain cache-first and are not executed during block render.
+
 ## Current status
 
 Implemented in v1:
