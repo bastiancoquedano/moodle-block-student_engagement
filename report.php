@@ -23,10 +23,64 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
+require_once($CFG->dirroot . '/group/lib.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 $view = optional_param('view', 'all', PARAM_ALPHA);
-$view = ($view === 'inactive') ? 'inactive' : 'all';
+$view = in_array($view, ['all', 'inactive', 'atrisk'], true) ? $view : 'all';
+
+$risklevelraw = optional_param('risklevel', 'all', PARAM_RAW_TRIMMED);
+$risklevelraw = trim((string)$risklevelraw);
+if ($risklevelraw === 'all') {
+    $risklevel = 'all';
+} else if ($risklevelraw === 'high_critical') {
+    $risklevel = 'high_critical';
+} else if (ctype_digit($risklevelraw) && (int)$risklevelraw >= 0 && (int)$risklevelraw <= 3) {
+    $risklevel = (string)(int)$risklevelraw;
+} else {
+    $risklevel = 'all';
+}
+
+$groupid = optional_param('groupid', 0, PARAM_INT);
+$groupid = max(0, $groupid);
+
+$status = optional_param('status', 'all', PARAM_ALPHA);
+$status = in_array($status, ['all', 'active', 'inactive'], true) ? $status : 'all';
+
+$datefrominput = optional_param('datefrom', '', PARAM_RAW_TRIMMED);
+$datetoinput = optional_param('dateto', '', PARAM_RAW_TRIMMED);
+
+$normalise_date_input = static function(string $rawvalue, bool $endofday): array {
+    $value = trim($rawvalue);
+    if ($value === '') {
+        return [0, ''];
+    }
+
+    if (preg_match('/^\d{10}$/', $value)) {
+        $timestamp = (int)$value;
+        if ($timestamp > 0) {
+            return [$timestamp, userdate($timestamp, '%Y-%m-%d')];
+        }
+    }
+
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+        $time = $endofday ? '23:59:59' : '00:00:00';
+        $timestamp = strtotime($value . ' ' . $time);
+        if ($timestamp) {
+            return [(int)$timestamp, $value];
+        }
+    }
+
+    return [0, ''];
+};
+
+[$datefrom, $datefrominput] = $normalise_date_input($datefrominput, false);
+[$dateto, $datetoinput] = $normalise_date_input($datetoinput, true);
+if ($datefrom > 0 && $dateto > 0 && $datefrom > $dateto) {
+    [$datefrominput, $datetoinput] = [$datetoinput, $datefrominput];
+    $datefrom = strtotime($datefrominput . ' 00:00:00') ?: 0;
+    $dateto = strtotime($datetoinput . ' 23:59:59') ?: 0;
+}
 
 $course = get_course($courseid);
 require_login($course);
@@ -34,22 +88,62 @@ require_login($course);
 $context = context_course::instance($courseid);
 require_capability('block/student_engagement:viewreport', $context);
 
+$groups = groups_get_all_groups($courseid) ?: [];
+if ($groupid > 0 && !isset($groups[$groupid])) {
+    $groupid = 0;
+}
+
+$filters = [
+    'risklevel' => $risklevel,
+    'atrisk' => ($view === 'atrisk' && $risklevel === 'all') || $risklevel === 'high_critical',
+    'groupid' => $groupid,
+    'status' => $status,
+    'datefrom' => $datefrom,
+    'dateto' => $dateto,
+    'datefrominput' => $datefrominput,
+    'datetoinput' => $datetoinput,
+];
+
+$hascustomfilters = ($risklevel !== 'all' || $view === 'atrisk' || $groupid > 0 || $status !== 'all' || $datefrom > 0 || $dateto > 0);
+$legacyinactive = ($view === 'inactive' && !$hascustomfilters);
+$effectiveview = $legacyinactive ? 'inactive' : 'all';
+
 $urlparams = ['courseid' => $courseid];
 if ($view === 'inactive') {
     $urlparams['view'] = 'inactive';
+} else if ($view === 'atrisk') {
+    $urlparams['view'] = 'atrisk';
 }
+if ($risklevel !== 'all') {
+    $urlparams['risklevel'] = $risklevel;
+}
+if ($groupid > 0) {
+    $urlparams['groupid'] = $groupid;
+}
+if ($status !== 'all') {
+    $urlparams['status'] = $status;
+}
+if ($datefrominput !== '') {
+    $urlparams['datefrom'] = $datefrominput;
+}
+if ($datetoinput !== '') {
+    $urlparams['dateto'] = $datetoinput;
+}
+
 $url = new moodle_url('/blocks/student_engagement/report.php', $urlparams);
 $PAGE->set_url($url);
 $PAGE->set_pagelayout('report');
 $PAGE->set_context($context);
-$titlestring = ($view === 'inactive') ? 'report_inactive_title' : 'report_title';
-$subtitlestring = ($view === 'inactive') ? 'report_inactive_subtitle' : 'report_subtitle';
-$formulastring = ($view === 'inactive') ? 'report_inactive_formula' : 'report_formula';
+
+$titlestring = ($legacyinactive) ? 'report_inactive_title' : 'report_title';
+$subtitlestring = ($legacyinactive) ? 'report_inactive_subtitle' : 'report_subtitle';
+$formulastring = ($legacyinactive) ? 'report_inactive_formula' : 'report_formula';
+
 $PAGE->set_title(get_string($titlestring, 'block_student_engagement'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->requires->css('/blocks/student_engagement/styles.css');
 
-$studentcount = \block_student_engagement\engagement_report::count_rows($courseid, $view);
+$studentcount = \block_student_engagement\engagement_report::count_rows($courseid, $effectiveview, $filters);
 
 echo $OUTPUT->header();
 
@@ -69,11 +163,159 @@ echo html_writer::div(
 );
 echo html_writer::end_div();
 
+$filterurl = new moodle_url('/blocks/student_engagement/report.php', [
+    'courseid' => $courseid,
+    'view' => $view,
+]);
+
+echo html_writer::start_div('block_student_engagement-report__filters');
+echo html_writer::start_tag('form', [
+    'method' => 'get',
+    'action' => $filterurl->out(false),
+    'class' => 'block_student_engagement-filter-form',
+]);
+
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'view', 'value' => $view]);
+
+echo html_writer::start_div('block_student_engagement-filter-grid');
+
+// Risk level.
+echo html_writer::start_div('block_student_engagement-filter-item');
+echo html_writer::label(get_string('filter_risk_level', 'block_student_engagement'), 'id_filter_risklevel');
+echo html_writer::start_tag('select', ['name' => 'risklevel', 'id' => 'id_filter_risklevel']);
+$riskoptions = [
+    'all' => get_string('filter_all', 'block_student_engagement'),
+    'high_critical' => get_string('filter_risk_level_high_critical', 'block_student_engagement'),
+    '0' => get_string('risk_level_label_0', 'block_student_engagement'),
+    '1' => get_string('risk_level_label_1', 'block_student_engagement'),
+    '2' => get_string('risk_level_label_2', 'block_student_engagement'),
+    '3' => get_string('risk_level_label_3', 'block_student_engagement'),
+];
+foreach ($riskoptions as $value => $label) {
+    $attrs = ['value' => $value];
+    if ((string)$risklevel === (string)$value) {
+        $attrs['selected'] = 'selected';
+    }
+    echo html_writer::tag('option', s($label), $attrs);
+}
+echo html_writer::end_tag('select');
+echo html_writer::end_div();
+
+// Group.
+echo html_writer::start_div('block_student_engagement-filter-item');
+echo html_writer::label(get_string('filter_group', 'block_student_engagement'), 'id_filter_groupid');
+echo html_writer::start_tag('select', ['name' => 'groupid', 'id' => 'id_filter_groupid']);
+echo html_writer::tag('option', get_string('filter_all', 'block_student_engagement'), ['value' => '0']);
+foreach ($groups as $group) {
+    $attrs = ['value' => (int)$group->id];
+    if ((int)$groupid === (int)$group->id) {
+        $attrs['selected'] = 'selected';
+    }
+    echo html_writer::tag('option', format_string($group->name), $attrs);
+}
+echo html_writer::end_tag('select');
+echo html_writer::end_div();
+
+// Status.
+echo html_writer::start_div('block_student_engagement-filter-item');
+echo html_writer::label(get_string('filter_status', 'block_student_engagement'), 'id_filter_status');
+echo html_writer::start_tag('select', ['name' => 'status', 'id' => 'id_filter_status']);
+$statusoptions = [
+    'all' => get_string('filter_all', 'block_student_engagement'),
+    'active' => get_string('filter_status_active', 'block_student_engagement'),
+    'inactive' => get_string('filter_status_inactive', 'block_student_engagement'),
+];
+foreach ($statusoptions as $value => $label) {
+    $attrs = ['value' => $value];
+    if ($status === $value) {
+        $attrs['selected'] = 'selected';
+    }
+    echo html_writer::tag('option', s($label), $attrs);
+}
+echo html_writer::end_tag('select');
+echo html_writer::end_div();
+
+// Date from.
+echo html_writer::start_div('block_student_engagement-filter-item');
+echo html_writer::label(get_string('filter_date_from', 'block_student_engagement'), 'id_filter_datefrom');
+echo html_writer::empty_tag('input', [
+    'type' => 'date',
+    'name' => 'datefrom',
+    'id' => 'id_filter_datefrom',
+    'value' => $datefrominput,
+]);
+echo html_writer::end_div();
+
+// Date to.
+echo html_writer::start_div('block_student_engagement-filter-item');
+echo html_writer::label(get_string('filter_date_to', 'block_student_engagement'), 'id_filter_dateto');
+echo html_writer::empty_tag('input', [
+    'type' => 'date',
+    'name' => 'dateto',
+    'id' => 'id_filter_dateto',
+    'value' => $datetoinput,
+]);
+echo html_writer::end_div();
+
+echo html_writer::end_div();
+
+echo html_writer::start_div('block_student_engagement-filter-actions');
+echo html_writer::empty_tag('input', [
+    'type' => 'submit',
+    'value' => get_string('filter_apply', 'block_student_engagement'),
+    'class' => 'btn btn-primary',
+]);
+$reseturl = new moodle_url('/blocks/student_engagement/report.php', ['courseid' => $courseid, 'view' => $view]);
+echo html_writer::link($reseturl, get_string('filter_clear', 'block_student_engagement'), ['class' => 'btn btn-secondary']);
+echo html_writer::end_div();
+
+echo html_writer::end_tag('form');
+echo html_writer::end_div();
+
+$activesummary = [];
+if ($risklevel !== 'all') {
+    if ($risklevel === 'high_critical') {
+        $risklabel = get_string('filter_risk_level_high_critical', 'block_student_engagement');
+    } else {
+        $risklabel = get_string('risk_level_label_' . (int)$risklevel, 'block_student_engagement');
+    }
+    $activesummary[] = get_string('filter_risk_level', 'block_student_engagement') . ': ' . $risklabel;
+} else if ($view === 'atrisk') {
+    $activesummary[] = get_string('filter_risk_level', 'block_student_engagement') . ': ' .
+        get_string('risk_level_label_2', 'block_student_engagement') . ' + ' .
+        get_string('risk_level_label_3', 'block_student_engagement');
+}
+if ($groupid > 0 && isset($groups[$groupid])) {
+    $activesummary[] = get_string('filter_group', 'block_student_engagement') . ': ' . format_string($groups[$groupid]->name);
+}
+if ($status !== 'all') {
+    $activesummary[] = get_string('filter_status', 'block_student_engagement') . ': ' .
+        get_string('filter_status_' . $status, 'block_student_engagement');
+}
+if ($datefrominput !== '') {
+    $activesummary[] = get_string('filter_date_from', 'block_student_engagement') . ': ' . s($datefrominput);
+}
+if ($datetoinput !== '') {
+    $activesummary[] = get_string('filter_date_to', 'block_student_engagement') . ': ' . s($datetoinput);
+}
+
+if (!empty($activesummary)) {
+    echo html_writer::div(
+        get_string('filters_active_summary', 'block_student_engagement') . ' ' . s(implode(' | ', $activesummary)),
+        'block_student_engagement-report__active-filters'
+    );
+}
+
 if ($studentcount === 0) {
-    $emptystring = ($view === 'inactive') ? 'report_no_inactive_students' : 'report_no_students';
+    if (!empty($activesummary)) {
+        $emptystring = 'report_no_students_with_filters';
+    } else {
+        $emptystring = ($legacyinactive) ? 'report_no_inactive_students' : 'report_no_students';
+    }
     echo $OUTPUT->notification(get_string($emptystring, 'block_student_engagement'), 'info');
 } else {
-    $table = new \block_student_engagement\output\report_table($courseid, $url, $view);
+    $table = new \block_student_engagement\output\report_table($courseid, $url, $effectiveview, $filters);
     ob_start();
     $table->out(25, true);
     $tablehtml = ob_get_clean();

@@ -33,79 +33,26 @@ class engagement_report {
 
     /** @var string Student role shortname. */
     private const STUDENT_ROLE_SHORTNAME = 'student';
-    /** @var string Event name excluded from inactivity activity checks. */
-    private const EVENT_COURSE_VIEWED = '\\core\\event\\course_viewed';
 
     /**
      * Count students in a course.
      *
      * @param int $courseid
-     * @return int
-     */
-    public static function count_students(int $courseid): int {
-        global $DB;
-
-        $sql = "SELECT COUNT(DISTINCT ra.userid)
-                  FROM {role_assignments} ra
-                  JOIN {context} ctx ON ctx.id = ra.contextid
-                  JOIN {role} r ON r.id = ra.roleid
-                  JOIN {user} u ON u.id = ra.userid
-                 WHERE ctx.contextlevel = :contextcourse
-                   AND ctx.instanceid = :courseid
-                   AND r.shortname = :studentshortname
-                   AND u.deleted = 0";
-        $params = [
-            'contextcourse' => CONTEXT_COURSE,
-            'courseid' => $courseid,
-            'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
-        ];
-
-        return (int)$DB->count_records_sql($sql, $params);
-    }
-
-    /**
-     * Count rows for a report mode.
-     *
-     * @param int $courseid
      * @param string $viewmode
+     * @param array $filters
      * @return int
      */
-    public static function count_rows(int $courseid, string $viewmode = 'all'): int {
-        if ($viewmode !== 'inactive') {
-            return self::count_students($courseid);
-        }
-
+    public static function count_rows(int $courseid, string $viewmode = 'all', array $filters = []): int {
         global $DB;
 
-        $inactivesince = time() - (self::get_inactive_days_threshold() * DAYSECS);
-        $sql = "SELECT COUNT(DISTINCT ra.userid)
-                  FROM {role_assignments} ra
-                  JOIN {context} ctx ON ctx.id = ra.contextid
-                  JOIN {role} r ON r.id = ra.roleid
-                  JOIN {user} u ON u.id = ra.userid
-             LEFT JOIN (
-                        SELECT l.userid, MAX(l.timecreated) AS lastactivity
-                          FROM {logstore_standard_log} l
-                         WHERE l.courseid = :activitycourseid
-                           AND l.userid > 0
-                           AND l.eventname <> :courseviewed
-                      GROUP BY l.userid
-                       ) activity ON activity.userid = ra.userid
-                 WHERE ctx.contextlevel = :contextcourse
-                   AND ctx.instanceid = :courseid
-                   AND r.shortname = :studentshortname
-                   AND u.deleted = 0
-                   AND (activity.lastactivity IS NULL OR activity.lastactivity < :inactivesince)";
-        $params = [
-            'activitycourseid' => $courseid,
-            'courseviewed' => self::EVENT_COURSE_VIEWED,
-            'contextcourse' => CONTEXT_COURSE,
-            'courseid' => $courseid,
-            'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
-            'inactivesince' => $inactivesince,
-        ];
+        $filterdata = self::normalise_filters($viewmode, $filters);
+        $parts = self::build_shared_sql_parts($courseid, $filterdata);
 
-        return (int)$DB->count_records_sql($sql, $params);
+        $sql = "SELECT COUNT(DISTINCT students.userid)
+                  {$parts['from']}
+                 {$parts['where']}";
+
+        return (int)$DB->count_records_sql($sql, $parts['params']);
     }
 
     /**
@@ -115,6 +62,8 @@ class engagement_report {
      * @param string $sort
      * @param int $limitfrom
      * @param int $limitnum
+     * @param string $viewmode
+     * @param array $filters
      * @return \stdClass[]
      */
     public static function get_rows(
@@ -122,32 +71,15 @@ class engagement_report {
         string $sort,
         int $limitfrom = 0,
         int $limitnum = 0,
-        string $viewmode = 'all'
+        string $viewmode = 'all',
+        array $filters = []
     ): array {
         global $DB;
 
-        $isinactiveview = ($viewmode === 'inactive');
+        $filterdata = self::normalise_filters($viewmode, $filters);
+        $parts = self::build_shared_sql_parts($courseid, $filterdata);
         $totalactivities = self::get_total_completable_activities($courseid);
         $eventgoal = self::get_event_goal();
-        $params = [
-            'contextcourse' => CONTEXT_COURSE,
-            'maincourseid' => $courseid,
-            'eventcourseid' => $courseid,
-            'completioncourseid' => $courseid,
-            'lastaccesscourseid' => $courseid,
-            'activitycourseid' => $courseid,
-            'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
-            'courseviewed' => self::EVENT_COURSE_VIEWED,
-            'eventgoalcompare' => max(1, $eventgoal),
-            'eventgoalscale' => max(1, $eventgoal),
-            'totalactivitiescheck' => $totalactivities,
-            'totalactivitiesscale' => $totalactivities,
-        ];
-        $inactivewhere = '';
-        if ($isinactiveview) {
-            $params['inactivesince'] = time() - (self::get_inactive_days_threshold() * DAYSECS);
-            $inactivewhere = ' AND (activity.lastactivity IS NULL OR activity.lastactivity < :inactivesince)';
-        }
 
         $scoreexpression = self::get_score_sql();
         $sql = "SELECT students.userid,
@@ -160,53 +92,35 @@ class engagement_report {
                        u.lastname AS student,
                        u.firstname AS studentfirstname,
                        COALESCE(events.eventcount, 0) AS eventcount,
+                       COALESCE(risk.recent_events, COALESCE(events.eventcount, 0)) AS recentevents,
                        COALESCE(completed.completedcount, 0) AS completedcount,
                        COALESCE(lastaccess.lastcourseaccess, 0) AS lastcourseaccess,
+                       risk.current_grade AS currentgrade,
+                       risk.pass_grade AS passgrade,
+                       risk.grade_gap AS gradegap,
+                       COALESCE(risk.risk_score, 0) AS riskscore,
+                       COALESCE(risk.risk_level, 0) AS risklevel,
+                       risk.risk_flags AS riskflags,
+                       risk.days_inactive AS riskdaysinactive,
+                       COALESCE(
+                           risk.days_inactive,
+                           CASE
+                               WHEN COALESCE(lastaccess.lastcourseaccess, 0) = 0 THEN NULL
+                               ELSE FLOOR((:currenttimestamp - lastaccess.lastcourseaccess) / :secondsinday)
+                           END
+                       ) AS daysinactivevalue,
                        {$scoreexpression} AS engagementscore
-                  FROM (
-                        SELECT DISTINCT ra.userid
-                          FROM {role_assignments} ra
-                          JOIN {context} ctx ON ctx.id = ra.contextid
-                          JOIN {role} r ON r.id = ra.roleid
-                         WHERE ctx.contextlevel = :contextcourse
-                           AND ctx.instanceid = :maincourseid
-                           AND r.shortname = :studentshortname
-                       ) students
-                  JOIN {user} u ON u.id = students.userid
-             LEFT JOIN (
-                        SELECT l.userid, COUNT(1) AS eventcount
-                          FROM {logstore_standard_log} l
-                         WHERE l.courseid = :eventcourseid
-                           AND l.userid > 0
-                      GROUP BY l.userid
-                       ) events ON events.userid = students.userid
-             LEFT JOIN (
-                        SELECT c.userid, COUNT(DISTINCT c.coursemoduleid) AS completedcount
-                          FROM {course_modules_completion} c
-                          JOIN {course_modules} cm ON cm.id = c.coursemoduleid
-                         WHERE cm.course = :completioncourseid
-                           AND cm.completion > 0
-                           AND c.completionstate <> 0
-                      GROUP BY c.userid
-                       ) completed ON completed.userid = students.userid
-             LEFT JOIN (
-                        SELECT l.userid, MAX(l.timecreated) AS lastcourseaccess
-                          FROM {logstore_standard_log} l
-                         WHERE l.courseid = :lastaccesscourseid
-                           AND l.userid > 0
-                      GROUP BY l.userid
-                       ) lastaccess ON lastaccess.userid = students.userid
-             LEFT JOIN (
-                        SELECT l.userid, MAX(l.timecreated) AS lastactivity
-                          FROM {logstore_standard_log} l
-                         WHERE l.courseid = :activitycourseid
-                           AND l.userid > 0
-                           AND l.eventname <> :courseviewed
-                      GROUP BY l.userid
-                       ) activity ON activity.userid = students.userid
-                 WHERE u.deleted = 0
-                   {$inactivewhere}
+                  {$parts['from']}
+                 {$parts['where']}
               ORDER BY {$sort}";
+
+        $params = $parts['params'];
+        $params['eventgoalcompare'] = max(1, $eventgoal);
+        $params['eventgoalscale'] = max(1, $eventgoal);
+        $params['totalactivitiescheck'] = $totalactivities;
+        $params['totalactivitiesscale'] = $totalactivities;
+        $params['currenttimestamp'] = time();
+        $params['secondsinday'] = DAYSECS;
 
         $records = $DB->get_records_sql($sql, $params, $limitfrom, $limitnum ?: 0);
         foreach ($records as $record) {
@@ -218,16 +132,148 @@ class engagement_report {
             ]);
             $record->studentname = fullname($record);
             $record->lastaccesstimestamp = !empty($record->lastcourseaccess) ? (int)$record->lastcourseaccess : null;
-            $record->daysinactive = ($record->lastaccesstimestamp === null)
-                ? null
-                : max(0, (int)floor((time() - (int)$record->lastaccesstimestamp) / DAYSECS));
-            $record->eventprogress = self::calculate_progress((int)$record->eventcount, (int)$eventgoal);
+
+            if ($record->daysinactivevalue !== null) {
+                $record->daysinactive = max(0, (int)$record->daysinactivevalue);
+            } else if ($record->lastaccesstimestamp === null) {
+                $record->daysinactive = null;
+            } else {
+                $record->daysinactive = max(0, (int)floor((time() - (int)$record->lastaccesstimestamp) / DAYSECS));
+            }
+
+            $record->eventprogress = self::calculate_progress((int)$record->recentevents, (int)$eventgoal);
             $record->completedprogress = self::calculate_progress((int)$record->completedcount, (int)$totalactivities);
             $record->engagementscore = max(0, min(100, (int)$record->engagementscore));
             $record->engagementlevel = self::resolve_level((int)$record->engagementscore);
+            $record->riskscore = max(0, min(100, (int)$record->riskscore));
+            $record->risklevel = max(0, min(3, (int)$record->risklevel));
+            $record->riskflags = self::decode_flags($record->riskflags ?? null);
+
+            $record->currentgrade = ($record->currentgrade === null || $record->currentgrade === '')
+                ? null
+                : (float)$record->currentgrade;
+            $record->passgrade = ($record->passgrade === null || $record->passgrade === '')
+                ? null
+                : (float)$record->passgrade;
+            $record->gradegap = ($record->gradegap === null || $record->gradegap === '')
+                ? null
+                : (float)$record->gradegap;
         }
 
         return array_values($records);
+    }
+
+    /**
+     * Build reusable SQL fragments for count and rows.
+     *
+     * @param int $courseid
+     * @param array $filters
+     * @return array{from:string,where:string,params:array}
+     */
+    private static function build_shared_sql_parts(int $courseid, array $filters): array {
+        $from = "FROM (
+                    SELECT DISTINCT ra.userid
+                      FROM {role_assignments} ra
+                      JOIN {context} ctx ON ctx.id = ra.contextid
+                      JOIN {role} r ON r.id = ra.roleid
+                     WHERE ctx.contextlevel = :contextcourse
+                       AND ctx.instanceid = :maincourseid
+                       AND r.shortname = :studentshortname
+                   ) students
+              JOIN {user} u ON u.id = students.userid
+         LEFT JOIN (
+                    SELECT l.userid, COUNT(1) AS eventcount
+                      FROM {logstore_standard_log} l
+                     WHERE l.courseid = :eventcourseid
+                       AND l.userid > 0
+                  GROUP BY l.userid
+                   ) events ON events.userid = students.userid
+         LEFT JOIN (
+                    SELECT c.userid, COUNT(DISTINCT c.coursemoduleid) AS completedcount
+                      FROM {course_modules_completion} c
+                      JOIN {course_modules} cm ON cm.id = c.coursemoduleid
+                     WHERE cm.course = :completioncourseid
+                       AND cm.completion > 0
+                       AND c.completionstate <> 0
+                  GROUP BY c.userid
+                   ) completed ON completed.userid = students.userid
+         LEFT JOIN (
+                    SELECT l.userid, MAX(l.timecreated) AS lastcourseaccess
+                      FROM {logstore_standard_log} l
+                     WHERE l.courseid = :lastaccesscourseid
+                       AND l.userid > 0
+                  GROUP BY l.userid
+                   ) lastaccess ON lastaccess.userid = students.userid
+         LEFT JOIN {block_student_engagement_risk} risk
+                ON risk.courseid = :riskcourseid
+               AND risk.userid = students.userid";
+
+        $where = "WHERE u.deleted = 0";
+        $params = [
+            'contextcourse' => CONTEXT_COURSE,
+            'maincourseid' => $courseid,
+            'eventcourseid' => $courseid,
+            'completioncourseid' => $courseid,
+            'lastaccesscourseid' => $courseid,
+            'riskcourseid' => $courseid,
+            'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
+        ];
+
+        if ($filters['groupid'] > 0) {
+            $where .= " AND EXISTS (
+                SELECT 1
+                  FROM {groups_members} gm
+                 WHERE gm.userid = students.userid
+                   AND gm.groupid = :groupid
+            )";
+            $params['groupid'] = (int)$filters['groupid'];
+        }
+
+        if (!empty($filters['atrisk'])) {
+            $where .= " AND COALESCE(risk.risk_level, 0) >= :risklevelmin";
+            $params['risklevelmin'] = 2;
+        } else if ($filters['risklevel'] !== null) {
+            $where .= " AND COALESCE(risk.risk_level, 0) = :risklevel";
+            $params['risklevel'] = (int)$filters['risklevel'];
+        }
+
+        if (!empty($filters['datefrom'])) {
+            $where .= " AND COALESCE(lastaccess.lastcourseaccess, 0) >= :datefrom";
+            $params['datefrom'] = (int)$filters['datefrom'];
+        }
+
+        if (!empty($filters['dateto'])) {
+            $where .= " AND COALESCE(lastaccess.lastcourseaccess, 0) <= :dateto";
+            $params['dateto'] = (int)$filters['dateto'];
+        }
+
+        if ($filters['status'] === 'inactive' || $filters['legacyinactive']) {
+            $where .= " AND (
+                COALESCE(lastaccess.lastcourseaccess, 0) = 0
+                OR COALESCE(
+                    risk.days_inactive,
+                    FLOOR((:currenttimeinactive - lastaccess.lastcourseaccess) / :daysecsinactive)
+                ) >= :inactivedaysthreshold
+            )";
+            $params['currenttimeinactive'] = (int)$filters['currenttime'];
+            $params['daysecsinactive'] = DAYSECS;
+            $params['inactivedaysthreshold'] = (int)$filters['inactivedaysthreshold'];
+        } else if ($filters['status'] === 'active') {
+            $where .= " AND COALESCE(lastaccess.lastcourseaccess, 0) > 0
+                        AND COALESCE(
+                            risk.days_inactive,
+                            FLOOR((:currenttimeactive - lastaccess.lastcourseaccess) / :daysecsactive)
+                        ) < :inactivedaysthreshold";
+            $params['currenttimeactive'] = (int)$filters['currenttime'];
+            $params['daysecsactive'] = DAYSECS;
+            $params['inactivedaysthreshold'] = (int)$filters['inactivedaysthreshold'];
+        }
+
+        return [
+            'from' => $from,
+            'where' => $where,
+            'params' => $params,
+        ];
     }
 
     /**
@@ -280,10 +326,12 @@ class engagement_report {
      *
      * @param string $sort
      * @param string $dir
+     * @param string $viewmode
      * @return string
      */
     public static function get_sort_sql(string $sort, string $dir, string $viewmode = 'all'): string {
         $direction = strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
+
         if ($viewmode === 'inactive') {
             $inversedirection = ($direction === 'DESC') ? 'ASC' : 'DESC';
             $map = [
@@ -297,12 +345,19 @@ class engagement_report {
 
         $map = [
             'student' => 'student ' . $direction . ', studentfirstname ' . $direction,
-            'eventcount' => 'eventcount ' . $direction . ', student ASC, studentfirstname ASC',
+            'lastaccess' => 'lastcourseaccess ' . $direction . ', student ASC, studentfirstname ASC',
+            'daysinactive' => 'daysinactivevalue ' . $direction . ', student ASC, studentfirstname ASC',
+            'recentevents' => 'recentevents ' . $direction . ', student ASC, studentfirstname ASC',
             'completedcount' => 'completedcount ' . $direction . ', student ASC, studentfirstname ASC',
+            'currentgrade' => 'currentgrade ' . $direction . ', student ASC, studentfirstname ASC',
+            'passgrade' => 'passgrade ' . $direction . ', student ASC, studentfirstname ASC',
+            'gradegap' => 'gradegap ' . $direction . ', student ASC, studentfirstname ASC',
             'engagementscore' => 'engagementscore ' . $direction . ', student ASC, studentfirstname ASC',
+            'riskscore' => 'riskscore ' . $direction . ', student ASC, studentfirstname ASC',
+            'risklevel' => 'risklevel ' . $direction . ', riskscore DESC, daysinactivevalue DESC, student ASC, studentfirstname ASC',
         ];
 
-        return $map[$sort] ?? $map['student'];
+        return $map[$sort] ?? 'risklevel DESC, riskscore DESC, daysinactivevalue DESC, student ASC, studentfirstname ASC';
     }
 
     /**
@@ -339,6 +394,79 @@ class engagement_report {
 
         $progress = (int)round(($value * 100) / $goal);
         return max(0, min(100, $progress));
+    }
+
+    /**
+     * Normalize filter input.
+     *
+     * @param string $viewmode
+     * @param array $filters
+     * @return array
+     */
+    private static function normalise_filters(string $viewmode, array $filters): array {
+        $risklevel = null;
+        if (array_key_exists('risklevel', $filters) && $filters['risklevel'] !== 'all' && $filters['risklevel'] !== '' && $filters['risklevel'] !== null) {
+            $risklevelraw = trim((string)$filters['risklevel']);
+            if ($risklevelraw === 'high_critical') {
+                $risklevel = null;
+            } else if (ctype_digit($risklevelraw)) {
+                $risklevelint = (int)$risklevelraw;
+                if ($risklevelint >= 0 && $risklevelint <= 3) {
+                    $risklevel = $risklevelint;
+                }
+            }
+        }
+        $atrisk = (!empty($filters['atrisk']) || (($filters['risklevel'] ?? '') === 'high_critical')) && $risklevel === null;
+
+        $groupid = isset($filters['groupid']) ? max(0, (int)$filters['groupid']) : 0;
+        $datefrom = isset($filters['datefrom']) ? max(0, (int)$filters['datefrom']) : 0;
+        $dateto = isset($filters['dateto']) ? max(0, (int)$filters['dateto']) : 0;
+        $status = $filters['status'] ?? 'all';
+        if (!in_array($status, ['all', 'active', 'inactive'], true)) {
+            $status = 'all';
+        }
+
+        $customactive = ($risklevel !== null || $groupid > 0 || $datefrom > 0 || $dateto > 0 || $status !== 'all');
+        $legacyinactive = ($viewmode === 'inactive' && !$customactive);
+
+        return [
+            'risklevel' => $risklevel,
+            'atrisk' => $atrisk,
+            'groupid' => $groupid,
+            'datefrom' => $datefrom,
+            'dateto' => $dateto,
+            'status' => $status,
+            'legacyinactive' => $legacyinactive,
+            'currenttime' => time(),
+            'inactivedaysthreshold' => self::get_inactive_days_threshold(),
+        ];
+    }
+
+    /**
+     * Decode risk flags JSON safely.
+     *
+     * @param string|null $flags
+     * @return string[]
+     */
+    private static function decode_flags(?string $flags): array {
+        if ($flags === null || $flags === '') {
+            return [];
+        }
+
+        $decoded = json_decode($flags, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($decoded as $value) {
+            $value = trim((string)$value);
+            if ($value !== '') {
+                $items[] = $value;
+            }
+        }
+
+        return $items;
     }
 
     /**
