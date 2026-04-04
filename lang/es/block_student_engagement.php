@@ -114,6 +114,7 @@ $string['report_no_students_with_filters'] = 'No se encontraron estudiantes con 
 
 $string['filter_all'] = 'Todos';
 $string['filter_risk_level'] = 'Nivel de riesgo';
+$string['filter_risk_level_high_critical'] = 'Alto + Crítico';
 $string['filter_group'] = 'Grupo';
 $string['filter_status'] = 'Estado';
 $string['filter_status_active'] = 'Activo';

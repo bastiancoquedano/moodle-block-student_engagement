@@ -114,6 +114,7 @@ $string['report_no_students_with_filters'] = 'No students matched the selected f
 
 $string['filter_all'] = 'All';
 $string['filter_risk_level'] = 'Risk level';
+$string['filter_risk_level_high_critical'] = 'High + Critical';
 $string['filter_group'] = 'Group';
 $string['filter_status'] = 'Status';
 $string['filter_status_active'] = 'Active';
