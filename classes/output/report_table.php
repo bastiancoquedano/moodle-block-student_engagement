@@ -64,6 +64,7 @@ class report_table extends \table_sql {
             $filters['risklevel'] !== 'all';
         $hascustomfilters = $riskfilteractive || !empty($filters['groupid']) ||
             !empty($filters['datefrom']) || !empty($filters['dateto']) ||
+            !empty($filters['atrisk']) ||
             (!empty($filters['status']) && $filters['status'] !== 'all');
         $this->legacyinactiveview = ($this->viewmode === 'inactive' && !$hascustomfilters);
 

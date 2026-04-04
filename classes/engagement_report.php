@@ -229,7 +229,10 @@ class engagement_report {
             $params['groupid'] = (int)$filters['groupid'];
         }
 
-        if ($filters['risklevel'] !== null) {
+        if (!empty($filters['atrisk'])) {
+            $where .= " AND COALESCE(risk.risk_level, 0) >= :risklevelmin";
+            $params['risklevelmin'] = 2;
+        } else if ($filters['risklevel'] !== null) {
             $where .= " AND COALESCE(risk.risk_level, 0) = :risklevel";
             $params['risklevel'] = (int)$filters['risklevel'];
         }
@@ -403,8 +406,17 @@ class engagement_report {
     private static function normalise_filters(string $viewmode, array $filters): array {
         $risklevel = null;
         if (array_key_exists('risklevel', $filters) && $filters['risklevel'] !== 'all' && $filters['risklevel'] !== '' && $filters['risklevel'] !== null) {
-            $risklevel = max(0, min(3, (int)$filters['risklevel']));
+            $risklevelraw = trim((string)$filters['risklevel']);
+            if ($risklevelraw === 'high_critical') {
+                $risklevel = null;
+            } else if (ctype_digit($risklevelraw)) {
+                $risklevelint = (int)$risklevelraw;
+                if ($risklevelint >= 0 && $risklevelint <= 3) {
+                    $risklevel = $risklevelint;
+                }
+            }
         }
+        $atrisk = (!empty($filters['atrisk']) || (($filters['risklevel'] ?? '') === 'high_critical')) && $risklevel === null;
 
         $groupid = isset($filters['groupid']) ? max(0, (int)$filters['groupid']) : 0;
         $datefrom = isset($filters['datefrom']) ? max(0, (int)$filters['datefrom']) : 0;
@@ -419,6 +431,7 @@ class engagement_report {
 
         return [
             'risklevel' => $risklevel,
+            'atrisk' => $atrisk,
             'groupid' => $groupid,
             'datefrom' => $datefrom,
             'dateto' => $dateto,
