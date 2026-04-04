@@ -71,7 +71,7 @@ class block_student_engagement_renderer extends plugin_renderer_base {
         );
         $cards[] = $this->metric_card(
             'status-neutral',
-            'i/completion',
+            'i/report',
             get_string('average_completion', 'block_student_engagement'),
             (string)$data->average_completion_percent . '%',
             get_string('dashboard_completion_caption', 'block_student_engagement')
