@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="blocks/student_engagement/db" VERSION="2026031000" COMMENT="XMLDB file for block_student_engagement"
+<XMLDB PATH="blocks/student_engagement/db" VERSION="2026040400" COMMENT="XMLDB file for block_student_engagement"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -14,6 +14,10 @@
         <FIELD NAME="most_active_interactions" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
         <FIELD NAME="inactive_userids" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="last_calculated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="at_risk_count" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="critical_risk_count" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="average_completion_percent" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="risk_last_calculated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -23,6 +27,33 @@
         <INDEX NAME="last_calculated_ix" UNIQUE="false" FIELDS="last_calculated"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="block_student_engagement_risk" COMMENT="Cached risk metrics by course and student">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="current_grade" TYPE="number" LENGTH="10,5" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="pass_grade" TYPE="number" LENGTH="10,5" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="grade_gap" TYPE="number" LENGTH="10,5" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="completion_percent" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="days_inactive" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="recent_events" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="attendance_percent" TYPE="number" LENGTH="10,5" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="engagement_score" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="risk_score" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="risk_level" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="risk_flags" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="last_calculated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="course_user_uix" UNIQUE="true" FIELDS="courseid, userid"/>
+        <INDEX NAME="course_risk_level_ix" UNIQUE="false" FIELDS="courseid, risk_level"/>
+        <INDEX NAME="course_risk_score_ix" UNIQUE="false" FIELDS="courseid, risk_score"/>
+        <INDEX NAME="last_calculated_ix" UNIQUE="false" FIELDS="last_calculated"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>
-
