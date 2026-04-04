@@ -121,9 +121,9 @@ class block_student_engagement extends block_base {
         $data->inactive_report_url = $data->has_report_link
             ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id, 'view' => 'inactive'])
             : null;
-        // Forward-compatible URL: current report.php ignores unknown "view" values safely.
+        // Risk quick access defaults to "at risk" cohort (high + critical).
         $data->risk_report_url = $data->has_report_link
-            ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id, 'view' => 'risk', 'risklevel' => 'high_critical'])
+            ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id, 'view' => 'atrisk'])
             : null;
 
         return $data;
