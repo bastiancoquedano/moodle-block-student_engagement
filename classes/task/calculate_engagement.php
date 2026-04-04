@@ -63,6 +63,16 @@ class calculate_engagement extends \core\task\scheduled_task {
         foreach ($recordset as $course) {
             try {
                 $payload = \block_student_engagement\engagement_analyser::analyse_course((int)$course->id);
+
+                if ($this->is_risk_enabled()) {
+                    $riskresult = \block_student_engagement\local\risk_analyser::analyse_course((int)$course->id);
+                    \block_student_engagement\local\risk_analyser::upsert_course_risk((int)$course->id, $riskresult['rows']);
+                    $payload->at_risk_count = (int)$riskresult['aggregates']['at_risk_count'];
+                    $payload->critical_risk_count = (int)$riskresult['aggregates']['critical_risk_count'];
+                    $payload->average_completion_percent = (int)$riskresult['aggregates']['average_completion_percent'];
+                    $payload->risk_last_calculated = (int)$riskresult['aggregates']['risk_last_calculated'];
+                }
+
                 \block_student_engagement\cache_manager::save_course_engagement($payload);
                 mtrace('Updated engagement cache for course ' . (int)$course->id . ': ' . $course->fullname);
             } catch (\Throwable $exception) {
@@ -76,5 +86,14 @@ class calculate_engagement extends \core\task\scheduled_task {
 
         $recordset->close();
     }
-}
 
+    /**
+     * Return whether risk calculation is enabled.
+     *
+     * @return bool
+     */
+    private function is_risk_enabled(): bool {
+        $enabled = get_config('block_student_engagement', 'risk_enabled');
+        return !empty($enabled);
+    }
+}

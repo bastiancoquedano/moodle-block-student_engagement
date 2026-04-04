@@ -42,7 +42,8 @@ class cache_manager {
      *
      * Expected keys/props (minimum): courseid.
      * Optional: active_students, inactive_students, most_active_userid,
-     * most_active_interactions, inactive_userids (array|string), last_calculated.
+     * most_active_interactions, inactive_userids (array|string), last_calculated,
+     * at_risk_count, critical_risk_count, average_completion_percent, risk_last_calculated.
      *
      * @param array|\stdClass $data
      * @return int The record id (inserted or existing).
@@ -133,6 +134,10 @@ class cache_manager {
         $record->inactive_students = isset($data->inactive_students) ? (int)$data->inactive_students : 0;
         $record->most_active_userid = isset($data->most_active_userid) ? (int)$data->most_active_userid : 0;
         $record->most_active_interactions = isset($data->most_active_interactions) ? (int)$data->most_active_interactions : 0;
+        $record->at_risk_count = isset($data->at_risk_count) ? (int)$data->at_risk_count : 0;
+        $record->critical_risk_count = isset($data->critical_risk_count) ? (int)$data->critical_risk_count : 0;
+        $record->average_completion_percent = isset($data->average_completion_percent) ? (int)$data->average_completion_percent : 0;
+        $record->risk_last_calculated = isset($data->risk_last_calculated) ? (int)$data->risk_last_calculated : 0;
 
         if (property_exists($data, 'inactive_userids')) {
             if (is_array($data->inactive_userids)) {
@@ -152,4 +157,3 @@ class cache_manager {
         return $record;
     }
 }
-
