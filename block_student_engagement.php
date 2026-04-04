@@ -112,19 +112,18 @@ class block_student_engagement extends block_base {
         $data->subtitle = get_string('dashboard_subtitle', 'block_student_engagement');
         $data->active_students = (int)$cache->active_students;
         $data->inactive_students = (int)$cache->inactive_students;
-        $data->most_active_user = $this->resolve_most_active_user_name($cache);
-        $data->has_most_active_user = !empty($cache->most_active_userid) &&
-            $data->most_active_user !== get_string('no_most_active_user', 'block_student_engagement');
-        $data->most_active_interactions = (int)$cache->most_active_interactions;
-        $data->inactive_users = $this->resolve_inactive_user_names($cache);
-        $data->has_inactive_users = !empty($data->inactive_users);
-        $data->last_calculated = !empty($cache->last_calculated) ? userdate((int)$cache->last_calculated) : '-';
+        $data->at_risk_students = isset($cache->at_risk_count) ? (int)$cache->at_risk_count : 0;
+        $data->average_completion_percent = isset($cache->average_completion_percent) ? (int)$cache->average_completion_percent : 0;
         $data->has_report_link = $this->can_view_report($COURSE ?? null);
-        $data->report_url = $data->has_report_link
+        $data->full_report_url = $data->has_report_link
             ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id])
             : null;
         $data->inactive_report_url = $data->has_report_link
             ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id, 'view' => 'inactive'])
+            : null;
+        // Forward-compatible URL: current report.php ignores unknown "view" values safely.
+        $data->risk_report_url = $data->has_report_link
+            ? new moodle_url('/blocks/student_engagement/report.php', ['courseid' => (int)$COURSE->id, 'view' => 'risk', 'risklevel' => 'high_critical'])
             : null;
 
         return $data;
@@ -149,73 +148,4 @@ class block_student_engagement extends block_base {
         return has_capability('block/student_engagement:viewreport', $coursecontext);
     }
 
-    /**
-     * Resolve the most active user name from cached data.
-     *
-     * @param stdClass $cache
-     * @return string
-     */
-    private function resolve_most_active_user_name(stdClass $cache): string {
-        global $DB;
-
-        if (empty($cache->most_active_userid)) {
-            return get_string('no_most_active_user', 'block_student_engagement');
-        }
-
-        $user = $DB->get_record(
-            'user',
-            ['id' => (int)$cache->most_active_userid],
-            'id,firstname,lastname,firstnamephonetic,lastnamephonetic,middlename,alternatename',
-            IGNORE_MISSING
-        );
-
-        if (!$user) {
-            return get_string('no_most_active_user', 'block_student_engagement');
-        }
-
-        return fullname($user);
-    }
-
-    /**
-     * Resolve the list of inactive user names from cached JSON data.
-     *
-     * @param stdClass $cache
-     * @return string[]
-     */
-    private function resolve_inactive_user_names(stdClass $cache): array {
-        global $DB;
-
-        if (empty($cache->inactive_userids)) {
-            return [];
-        }
-
-        $userids = json_decode($cache->inactive_userids, true);
-        if (!is_array($userids)) {
-            return [];
-        }
-
-        $userids = array_values(array_filter(array_map('intval', $userids)));
-        if (empty($userids)) {
-            return [];
-        }
-
-        $users = $DB->get_records_list(
-            'user',
-            'id',
-            $userids,
-            'lastname ASC, firstname ASC',
-            'id,firstname,lastname,firstnamephonetic,lastnamephonetic,middlename,alternatename'
-        );
-
-        if (empty($users)) {
-            return [];
-        }
-
-        $items = [];
-        foreach ($users as $user) {
-            $items[] = fullname($user);
-        }
-
-        return $items;
-    }
 }
