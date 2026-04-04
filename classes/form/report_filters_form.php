@@ -40,8 +40,6 @@ class report_filters_form extends \moodleform {
         $risklevel = (string)($customdata['risklevel'] ?? 'all');
         $groupid = (int)($customdata['groupid'] ?? 0);
         $status = (string)($customdata['status'] ?? 'all');
-        $datefrom = (string)($customdata['datefrom'] ?? '');
-        $dateto = (string)($customdata['dateto'] ?? '');
         $groups = (array)($customdata['groups'] ?? []);
 
         $mform->addElement('hidden', 'courseid', $courseid);
@@ -86,29 +84,8 @@ class report_filters_form extends \moodleform {
         $mform->setDefault('status', $status);
         $mform->addElement('html', '</div>');
 
-        $mform->addElement('html', '<div class="horizontal-filter-item">');
-        $mform->addElement('text', 'datefrom', get_string('filter_date_from', 'block_student_engagement'));
-        $mform->setType('datefrom', PARAM_RAW_TRIMMED);
-        $mform->setDefault('datefrom', $datefrom);
-        $datefromelement = $mform->getElement('datefrom');
-        if ($datefromelement) {
-            $datefromelement->setType('date');
-            $datefromelement->updateAttributes(['type' => 'date']);
-        }
         $mform->addElement('html', '</div>');
 
-        $mform->addElement('html', '<div class="horizontal-filter-item">');
-        $mform->addElement('text', 'dateto', get_string('filter_date_to', 'block_student_engagement'));
-        $mform->setType('dateto', PARAM_RAW_TRIMMED);
-        $mform->setDefault('dateto', $dateto);
-        $datetoelement = $mform->getElement('dateto');
-        if ($datetoelement) {
-            $datetoelement->setType('date');
-            $datetoelement->updateAttributes(['type' => 'date']);
-        }
-        $mform->addElement('html', '</div>');
-        $mform->addElement('html', '</div>');
-
-        $this->add_action_buttons(false, get_string('filter_apply', 'block_student_engagement'));
+        // Action buttons are rendered in report_page::render_filters() to keep Apply and Clear aligned.
     }
 }

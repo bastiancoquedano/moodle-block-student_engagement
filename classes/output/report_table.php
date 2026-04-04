@@ -44,6 +44,90 @@ class report_table extends \table_sql {
     private $legacyinactiveview;
 
     /**
+     * Determine whether legacy inactive view applies.
+     *
+     * @param string $viewmode
+     * @param array $filters
+     * @return bool
+     */
+    public static function is_legacy_inactive_view(string $viewmode, array $filters): bool {
+        $normalisedview = ($viewmode === 'inactive') ? 'inactive' : 'all';
+        $riskfilteractive = isset($filters['risklevel']) &&
+            $filters['risklevel'] !== '' &&
+            $filters['risklevel'] !== null &&
+            $filters['risklevel'] !== 'all';
+        $hascustomfilters = $riskfilteractive || !empty($filters['groupid']) ||
+            !empty($filters['datefrom']) || !empty($filters['dateto']) ||
+            !empty($filters['atrisk']) ||
+            (!empty($filters['status']) && $filters['status'] !== 'all');
+
+        return ($normalisedview === 'inactive' && !$hascustomfilters);
+    }
+
+    /**
+     * Export headers in display order.
+     *
+     * @param bool $legacyinactiveview
+     * @return array
+     */
+    public static function get_export_headers(bool $legacyinactiveview): array {
+        if ($legacyinactiveview) {
+            return [
+                get_string('report_student', 'block_student_engagement'),
+                get_string('report_days_inactive', 'block_student_engagement'),
+                get_string('report_last_course_access', 'block_student_engagement'),
+            ];
+        }
+
+        return [
+            get_string('report_student', 'block_student_engagement'),
+            get_string('report_last_course_access', 'block_student_engagement'),
+            get_string('report_days_inactive', 'block_student_engagement'),
+            get_string('report_recent_events', 'block_student_engagement'),
+            get_string('report_completed', 'block_student_engagement'),
+            get_string('report_current_grade', 'block_student_engagement'),
+            get_string('report_pass_grade', 'block_student_engagement'),
+            get_string('report_grade_gap', 'block_student_engagement'),
+            get_string('report_score', 'block_student_engagement'),
+            get_string('report_risk_score', 'block_student_engagement'),
+            get_string('report_risk_level', 'block_student_engagement'),
+            get_string('report_risk_flags', 'block_student_engagement'),
+        ];
+    }
+
+    /**
+     * Format a data row for CSV export.
+     *
+     * @param \stdClass $row
+     * @param bool $legacyinactiveview
+     * @return array
+     */
+    public static function format_export_row(\stdClass $row, bool $legacyinactiveview): array {
+        if ($legacyinactiveview) {
+            return [
+                (string)$row->studentname,
+                self::format_days_inactive($row),
+                self::format_last_access($row),
+            ];
+        }
+
+        return [
+            (string)$row->studentname,
+            self::format_last_access($row),
+            self::format_days_inactive($row),
+            (string)(int)$row->recentevents,
+            (string)((int)$row->completedcount . ' / ' . (int)$row->totalactivities . ' (' . (int)$row->completedprogress . '%)'),
+            self::format_nullable_grade($row->currentgrade),
+            self::format_nullable_grade($row->passgrade),
+            self::format_nullable_grade($row->gradegap),
+            (string)((int)$row->engagementscore . ' / 100'),
+            (string)((int)$row->riskscore . ' / 100'),
+            get_string('risk_level_label_' . (int)$row->risklevel, 'block_student_engagement'),
+            self::format_risk_flags_text($row),
+        ];
+    }
+
+    /**
      * Constructor.
      *
      * @param int $courseid
@@ -58,15 +142,7 @@ class report_table extends \table_sql {
         $this->viewmode = ($viewmode === 'inactive') ? 'inactive' : 'all';
         $this->filters = $filters;
 
-        $riskfilteractive = isset($filters['risklevel']) &&
-            $filters['risklevel'] !== '' &&
-            $filters['risklevel'] !== null &&
-            $filters['risklevel'] !== 'all';
-        $hascustomfilters = $riskfilteractive || !empty($filters['groupid']) ||
-            !empty($filters['datefrom']) || !empty($filters['dateto']) ||
-            !empty($filters['atrisk']) ||
-            (!empty($filters['status']) && $filters['status'] !== 'all');
-        $this->legacyinactiveview = ($this->viewmode === 'inactive' && !$hascustomfilters);
+        $this->legacyinactiveview = self::is_legacy_inactive_view($this->viewmode, $filters);
 
         if ($this->legacyinactiveview) {
             $this->define_columns(['student', 'daysinactive', 'lastaccess']);
@@ -376,5 +452,63 @@ class report_table extends \table_sql {
         }
 
         return $flag;
+    }
+
+    /**
+     * @param \stdClass $row
+     * @return string
+     */
+    private static function format_days_inactive(\stdClass $row): string {
+        if ($row->daysinactive === null) {
+            return '-';
+        }
+
+        return (string)(int)$row->daysinactive;
+    }
+
+    /**
+     * @param \stdClass $row
+     * @return string
+     */
+    private static function format_last_access(\stdClass $row): string {
+        if (empty($row->lastaccesstimestamp)) {
+            return get_string('report_never', 'block_student_engagement');
+        }
+
+        return userdate((int)$row->lastaccesstimestamp);
+    }
+
+    /**
+     * @param float|null $value
+     * @return string
+     */
+    private static function format_nullable_grade(?float $value): string {
+        return ($value === null) ? '-' : format_float((float)$value, 2);
+    }
+
+    /**
+     * @param \stdClass $row
+     * @return string
+     */
+    private static function format_risk_flags_text(\stdClass $row): string {
+        if (empty($row->riskflags) || !is_array($row->riskflags)) {
+            return '-';
+        }
+
+        $labels = [];
+        foreach ($row->riskflags as $flag) {
+            $labels[] = self::resolve_risk_flag_label((string)$flag);
+        }
+
+        return implode(', ', $labels);
+    }
+
+    /**
+     * Disable Moodle "Reset table preferences" action for this plugin table.
+     *
+     * @return bool
+     */
+    protected function can_be_reset() {
+        return false;
     }
 }

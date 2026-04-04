@@ -33,32 +33,6 @@ $export = optional_param('export', '', PARAM_ALPHA);
 $risklevelraw = trim((string)optional_param('risklevel', 'all', PARAM_RAW_TRIMMED));
 $groupidraw = max(0, optional_param('groupid', 0, PARAM_INT));
 $statusraw = optional_param('status', 'all', PARAM_ALPHA);
-$datefrominput = optional_param('datefrom', '', PARAM_RAW_TRIMMED);
-$datetoinput = optional_param('dateto', '', PARAM_RAW_TRIMMED);
-
-$normalise_date_input = static function(string $rawvalue, bool $endofday): array {
-    $value = trim($rawvalue);
-    if ($value === '') {
-        return [0, ''];
-    }
-
-    if (preg_match('/^\d{10}$/', $value)) {
-        $timestamp = (int)$value;
-        if ($timestamp > 0) {
-            return [$timestamp, userdate($timestamp, '%Y-%m-%d')];
-        }
-    }
-
-    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-        $time = $endofday ? '23:59:59' : '00:00:00';
-        $timestamp = strtotime($value . ' ' . $time);
-        if ($timestamp) {
-            return [(int)$timestamp, $value];
-        }
-    }
-
-    return [0, ''];
-};
 
 $course = get_course($courseid);
 require_login($course);
@@ -78,8 +52,6 @@ $filterformdata = [
     'risklevel' => $risklevelraw,
     'groupid' => $groupidraw,
     'status' => $statusraw,
-    'datefrom' => $datefrominput,
-    'dateto' => $datetoinput,
     'groups' => $groups,
 ];
 $filterform = new \block_student_engagement\form\report_filters_form(
@@ -93,8 +65,6 @@ if ($submittedfilterdata = $filterform->get_data()) {
     $risklevelraw = trim((string)($submittedfilterdata->risklevel ?? 'all'));
     $groupidraw = max(0, (int)($submittedfilterdata->groupid ?? 0));
     $statusraw = (string)($submittedfilterdata->status ?? 'all');
-    $datefrominput = trim((string)($submittedfilterdata->datefrom ?? ''));
-    $datetoinput = trim((string)($submittedfilterdata->dateto ?? ''));
 }
 
 if ($risklevelraw === 'all') {
@@ -114,19 +84,9 @@ if ($groupid > 0 && !isset($groups[$groupid])) {
 
 $status = in_array($statusraw, ['all', 'active', 'inactive'], true) ? $statusraw : 'all';
 
-[$datefrom, $datefrominput] = $normalise_date_input($datefrominput, false);
-[$dateto, $datetoinput] = $normalise_date_input($datetoinput, true);
-if ($datefrom > 0 && $dateto > 0 && $datefrom > $dateto) {
-    [$datefrominput, $datetoinput] = [$datetoinput, $datefrominput];
-    $datefrom = strtotime($datefrominput . ' 00:00:00') ?: 0;
-    $dateto = strtotime($datetoinput . ' 23:59:59') ?: 0;
-}
-
 $filterformdata['risklevel'] = $risklevel;
 $filterformdata['groupid'] = $groupid;
 $filterformdata['status'] = $status;
-$filterformdata['datefrom'] = $datefrominput;
-$filterformdata['dateto'] = $datetoinput;
 $filterform->set_data($filterformdata);
 
 $filters = [
@@ -134,13 +94,9 @@ $filters = [
     'atrisk' => ($view === 'atrisk' && $risklevel === 'all') || $risklevel === 'high_critical',
     'groupid' => $groupid,
     'status' => $status,
-    'datefrom' => $datefrom,
-    'dateto' => $dateto,
-    'datefrominput' => $datefrominput,
-    'datetoinput' => $datetoinput,
 ];
 
-$hascustomfilters = ($risklevel !== 'all' || $view === 'atrisk' || $groupid > 0 || $status !== 'all' || $datefrom > 0 || $dateto > 0);
+$hascustomfilters = ($risklevel !== 'all' || $view === 'atrisk' || $groupid > 0 || $status !== 'all');
 $legacyinactive = ($view === 'inactive' && !$hascustomfilters);
 $effectiveview = $legacyinactive ? 'inactive' : 'all';
 
@@ -158,12 +114,6 @@ if ($groupid > 0) {
 }
 if ($status !== 'all') {
     $urlparams['status'] = $status;
-}
-if ($datefrominput !== '') {
-    $urlparams['datefrom'] = $datefrominput;
-}
-if ($datetoinput !== '') {
-    $urlparams['dateto'] = $datetoinput;
 }
 
 $url = new moodle_url('/blocks/student_engagement/report.php', $urlparams);
@@ -287,12 +237,6 @@ if ($groupid > 0 && isset($groups[$groupid])) {
 if ($status !== 'all') {
     $activesummary[] = get_string('filter_status', 'block_student_engagement') . ': ' .
         get_string('filter_status_' . $status, 'block_student_engagement');
-}
-if ($datefrominput !== '') {
-    $activesummary[] = get_string('filter_date_from', 'block_student_engagement') . ': ' . s($datefrominput);
-}
-if ($datetoinput !== '') {
-    $activesummary[] = get_string('filter_date_to', 'block_student_engagement') . ': ' . s($datetoinput);
 }
 
 echo \block_student_engagement\output\report_page::render_active_filters($activesummary);

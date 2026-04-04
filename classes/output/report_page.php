@@ -75,12 +75,18 @@ class report_page {
         ob_start();
         $filterform->display();
         $formhtml = ob_get_clean();
+        $applybutton = \html_writer::empty_tag('input', [
+            'type' => 'submit',
+            'value' => get_string('filter_apply', 'block_student_engagement'),
+            'class' => 'btn btn-primary',
+        ]);
         $clearlink = \html_writer::link(
             $reseturl,
             get_string('filter_clear', 'block_student_engagement'),
             ['class' => 'btn btn-secondary block_student_engagement-filter-clear']
         );
-        $formhtml = preg_replace('/<\/form>\s*$/', $clearlink . '</form>', $formhtml) ?? ($formhtml . $clearlink);
+        $actionshtml = \html_writer::div($applybutton . $clearlink, 'block_student_engagement-filter-actions');
+        $formhtml = preg_replace('/<\/form>\s*$/', $actionshtml . '</form>', $formhtml) ?? ($formhtml . $actionshtml);
 
         $content = \html_writer::start_div('block_student_engagement-report__filters');
         $content .= $formhtml;
