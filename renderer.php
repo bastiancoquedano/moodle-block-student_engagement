@@ -36,64 +36,51 @@ class block_student_engagement_renderer extends plugin_renderer_base {
      * @return string
      */
     public function dashboard(stdClass $data): string {
-        $header = html_writer::start_div('block_student_engagement-header');
-        $header .= html_writer::div(
+        $content = html_writer::start_div('block_student_engagement-dashboard');
+
+        $content .= html_writer::start_div('block_student_engagement-header');
+        $content .= html_writer::div(
             $this->pix_icon('i/report', '') .
             html_writer::span(s($data->title), 'block_student_engagement-header__title'),
             'block_student_engagement-header__heading'
         );
-        $header .= html_writer::div(s($data->subtitle), 'block_student_engagement-header__subtitle');
-        $header .= html_writer::end_div();
+        $content .= html_writer::div(s($data->subtitle), 'block_student_engagement-header__subtitle');
+        $content .= html_writer::end_div();
 
         $cards = [];
         $cards[] = $this->metric_card(
-            'active',
+            'status-good',
             'i/group',
-            get_string('active_students_7_days', 'block_student_engagement'),
+            get_string('active_students', 'block_student_engagement'),
             (string)$data->active_students,
             get_string('dashboard_active_caption', 'block_student_engagement')
         );
         $cards[] = $this->metric_card(
-            'inactive',
+            'status-neutral',
             'i/warning',
             get_string('inactive_students', 'block_student_engagement'),
             (string)$data->inactive_students,
             get_string('dashboard_inactive_caption', 'block_student_engagement')
         );
         $cards[] = $this->metric_card(
-            'highlight',
-            't/award',
-            get_string('most_active_user', 'block_student_engagement'),
-            $data->most_active_user,
-            get_string('most_active_interactions', 'block_student_engagement', $data->most_active_interactions),
-            !$data->has_most_active_user,
-            'block_student_engagement-card__value--person'
+            'status-danger',
+            'i/warning',
+            get_string('at_risk_students', 'block_student_engagement'),
+            (string)$data->at_risk_students,
+            get_string('dashboard_at_risk_caption', 'block_student_engagement')
         );
-        $cards[] = $this->inactive_users_card($data);
-
-        $footer = html_writer::start_div('block_student_engagement-footer');
-        $footer .= html_writer::div(
-            $this->pix_icon('i/calendar', '') .
-            html_writer::span(get_string('last_calculated', 'block_student_engagement'), 'block_student_engagement-footer__label'),
-            'block_student_engagement-footer__heading'
+        $cards[] = $this->metric_card(
+            'status-neutral',
+            'i/completion',
+            get_string('average_completion', 'block_student_engagement'),
+            (string)$data->average_completion_percent . '%',
+            get_string('dashboard_completion_caption', 'block_student_engagement')
         );
-        $footer .= html_writer::div(s($data->last_calculated), 'block_student_engagement-footer__value');
-        $footer .= html_writer::end_div();
 
-        $content = html_writer::start_div('block_student_engagement-dashboard');
-        $content .= $header;
-        if (!empty($data->has_report_link) && !empty($data->report_url)) {
-            $content .= html_writer::div(
-                html_writer::link(
-                    $data->report_url,
-                    get_string('view_engagement_report', 'block_student_engagement'),
-                    ['class' => 'block_student_engagement-report-link']
-                ),
-                'block_student_engagement-actions'
-            );
-        }
         $content .= html_writer::div(implode('', $cards), 'block_student_engagement-grid');
-        $content .= $footer;
+        if (!empty($data->has_report_link)) {
+            $content .= $this->actions_band($data);
+        }
         $content .= html_writer::end_div();
 
         return $content;
@@ -102,93 +89,96 @@ class block_student_engagement_renderer extends plugin_renderer_base {
     /**
      * Render a metric card.
      *
-     * @param string $modifier
+     * @param string $statusclass
      * @param string $icon
      * @param string $label
      * @param string $value
      * @param string $meta
-     * @param bool $isempty
-     * @param string $valueclass
      * @return string
      */
     private function metric_card(
-        string $modifier,
+        string $statusclass,
         string $icon,
         string $label,
         string $value,
-        string $meta,
-        bool $isempty = false,
-        string $valueclass = ''
+        string $meta
     ): string {
-        $classes = 'block_student_engagement-card block_student_engagement-card--' . $modifier;
-        if ($isempty) {
-            $classes .= ' block_student_engagement-empty';
-        }
-
-        $valueclasses = 'block_student_engagement-card__value';
-        if ($valueclass !== '') {
-            $valueclasses .= ' ' . $valueclass;
-        }
+        $classes = 'block_student_engagement-card ' . $statusclass;
 
         $content = html_writer::div($this->pix_icon($icon, ''), 'block_student_engagement-card__icon');
         $content .= html_writer::div(s($label), 'block_student_engagement-card__label');
-        $content .= html_writer::div(s($value), $valueclasses, ['title' => $value]);
+        $content .= html_writer::div(s($value), 'block_student_engagement-card__value', ['title' => $value]);
         $content .= html_writer::div(s($meta), 'block_student_engagement-card__meta');
 
         return html_writer::div($content, $classes);
     }
 
     /**
-     * Render the inactive users card.
+     * Render compact action band.
      *
      * @param stdClass $data
      * @return string
      */
-    private function inactive_users_card(stdClass $data): string {
-        $classes = 'block_student_engagement-card block_student_engagement-card--inactive-list';
-        $content = html_writer::div($this->pix_icon('i/calendar', ''), 'block_student_engagement-card__icon');
-        $content .= html_writer::div(
-            get_string('inactive_students_over_threshold', 'block_student_engagement'),
-            'block_student_engagement-card__label'
-        );
-
-        if (!$data->has_inactive_users) {
-            $content .= html_writer::div(
-                s(get_string('no_inactive_students', 'block_student_engagement')),
-                'block_student_engagement-card__meta block_student_engagement-empty'
-            );
-            return html_writer::div($content, $classes);
-        }
-
+    private function actions_band(stdClass $data): string {
         $items = [];
-        foreach ($data->inactive_users as $name) {
-            $namecontent = html_writer::span(
-                s($name),
-                'block_student_engagement-list__text',
-                ['title' => $name]
-            );
-            $items[] = html_writer::tag('li', $namecontent, [
-                'class' => 'block_student_engagement-list__item',
-                'title' => $name,
-            ]);
-        }
-
-        $content .= html_writer::tag(
-            'ul',
-            implode('', $items),
-            ['class' => 'block_student_engagement-list']
+        $items[] = $this->action_link(
+            $data->full_report_url,
+            'i/report',
+            get_string('view_engagement_report', 'block_student_engagement')
         );
-        if (!empty($data->has_report_link) && !empty($data->inactive_report_url)) {
-            $content .= html_writer::div(
-                html_writer::link(
-                    $data->inactive_report_url,
-                    get_string('view_inactive_users_report', 'block_student_engagement'),
-                    ['class' => 'block_student_engagement-inactive-link']
-                ),
-                'block_student_engagement-card__meta'
-            );
+        $items[] = $this->action_link(
+            $data->inactive_report_url,
+            'i/calendar',
+            get_string('view_inactive_users_report', 'block_student_engagement')
+        );
+        $items[] = $this->action_link(
+            $data->risk_report_url,
+            'i/warning',
+            get_string('view_at_risk_users_report', 'block_student_engagement')
+        );
+        $items[] = $this->action_placeholder(
+            'i/report',
+            get_string('view_recommendations', 'block_student_engagement')
+        );
+
+        return html_writer::div(implode('', $items), 'block_student_engagement-actions');
+    }
+
+    /**
+     * Render an action link.
+     *
+     * @param moodle_url|null $url
+     * @param string $icon
+     * @param string $label
+     * @return string
+     */
+    private function action_link(?moodle_url $url, string $icon, string $label): string {
+        if (!$url) {
+            return '';
         }
 
-        return html_writer::div($content, $classes);
+        $content = $this->pix_icon($icon, '') . html_writer::span(s($label), 'block_student_engagement-action__label');
+        return html_writer::link($url, $content, ['class' => 'block_student_engagement-action']);
+    }
+
+    /**
+     * Render disabled placeholder action.
+     *
+     * @param string $icon
+     * @param string $label
+     * @return string
+     */
+    private function action_placeholder(string $icon, string $label): string {
+        $content = $this->pix_icon($icon, '') . html_writer::span(s($label), 'block_student_engagement-action__label');
+        $content .= html_writer::span(
+            s(get_string('coming_soon', 'block_student_engagement')),
+            'block_student_engagement-action__badge'
+        );
+
+        return html_writer::tag('span', $content, [
+            'class' => 'block_student_engagement-action block_student_engagement-action--disabled',
+            'aria-disabled' => 'true',
+            'role' => 'button',
+        ]);
     }
 }

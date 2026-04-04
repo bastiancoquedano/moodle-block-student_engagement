@@ -1,81 +1,76 @@
 .block_student_engagement-dashboard {
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
-}
-
-.block_student_engagement-truncate-1 {
-    display: block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    gap: 0.85rem;
 }
 
 .block_student_engagement-header {
-    padding: 0.95rem 1rem;
+    padding: 0.8rem 0.95rem;
     border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 0.9rem;
+    border-radius: 0.75rem;
     background: linear-gradient(180deg, rgba(13, 110, 253, 0.08), rgba(13, 110, 253, 0.03));
 }
 
-.block_student_engagement-header__heading,
-.block_student_engagement-footer__heading {
+.block_student_engagement-header__heading {
     display: flex;
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.45rem;
     font-weight: 600;
 }
 
 .block_student_engagement-header__title {
-    font-size: 1rem;
+    font-size: 0.95rem;
     line-height: 1.3;
 }
 
 .block_student_engagement-header__subtitle {
-    margin-top: 0.35rem;
+    margin-top: 0.28rem;
     color: #5f6b7a;
-    font-size: 0.86rem;
+    font-size: 0.82rem;
     line-height: 1.4;
 }
 
 .block_student_engagement-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
 }
 
 .block_student_engagement-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
     width: 100%;
 }
 
-.block_student_engagement-report-link {
-    display: inline-flex;
+.block_student_engagement-action {
+    display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 0.45rem;
     width: 100%;
-    padding: 0.55rem 0.9rem;
-    border: 1px solid rgba(13, 110, 253, 0.16);
-    border-radius: 999px;
-    background: linear-gradient(180deg, rgba(13, 110, 253, 0.08), rgba(13, 110, 253, 0.03));
+    padding: 0.5rem 0.65rem;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+    border-radius: 0.6rem;
+    background: #f8fbff;
     color: #0a58ca;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     box-sizing: border-box;
     text-decoration: none;
 }
 
-.block_student_engagement-report-link:hover,
-.block_student_engagement-report-link:focus {
+.block_student_engagement-action:hover,
+.block_student_engagement-action:focus {
     color: #084298;
+    background: #edf4ff;
     text-decoration: none;
 }
 
 .block_student_engagement-card {
-    padding: 0.95rem;
+    padding: 0.75rem;
     border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 0.9rem;
+    border-radius: 0.75rem;
     background-color: #fff;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
@@ -86,143 +81,65 @@
 }
 
 .block_student_engagement-card__label {
-    margin-top: 0.45rem;
+    margin-top: 0.38rem;
     color: #5f6b7a;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 600;
     line-height: 1.35;
 }
 
 .block_student_engagement-card__value {
-    margin-top: 0.4rem;
+    margin-top: 0.33rem;
     color: #1f2933;
-    font-size: 1.45rem;
+    font-size: 1.3rem;
     font-weight: 700;
     line-height: 1.1;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.block_student_engagement-card__value--person {
-    font-size: 1.2rem;
-    line-height: 1.3;
-    -webkit-line-clamp: 3;
 }
 
 .block_student_engagement-card__meta {
-    margin-top: 0.35rem;
+    margin-top: 0.3rem;
     color: #5f6b7a;
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     line-height: 1.45;
 }
 
-.block_student_engagement-inactive-link {
+.block_student_engagement-action__label {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    margin-top: 0.2rem;
-    width: 100%;
-    padding: 0.48rem 0.7rem;
-    border: 1px solid rgba(176, 42, 55, 0.25);
-    border-radius: 0.65rem;
-    background: linear-gradient(180deg, rgba(220, 53, 69, 0.12), rgba(220, 53, 69, 0.04));
-    color: #842029;
-    font-size: 0.8rem;
-    font-weight: 700;
-    line-height: 1.2;
-    text-decoration: none;
-    box-sizing: border-box;
-    transition: background-color 140ms ease-in-out, border-color 140ms ease-in-out,
-        box-shadow 140ms ease-in-out, transform 140ms ease-in-out;
+    gap: 0.4rem;
 }
 
-.block_student_engagement-inactive-link:hover,
-.block_student_engagement-inactive-link:focus {
-    border-color: rgba(176, 42, 55, 0.36);
-    background: linear-gradient(180deg, rgba(220, 53, 69, 0.18), rgba(220, 53, 69, 0.07));
-    color: #721c24;
-    text-decoration: none;
-    box-shadow: 0 2px 6px rgba(176, 42, 55, 0.16);
-    transform: translateY(-1px);
+.block_student_engagement-action__badge {
+    border-radius: 999px;
+    border: 1px solid rgba(52, 64, 84, 0.24);
+    background: #f2f4f7;
+    color: #344054;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 600;
 }
 
-.block_student_engagement-inactive-link:focus-visible {
-    outline: 2px solid rgba(176, 42, 55, 0.35);
-    outline-offset: 2px;
+.block_student_engagement-action--disabled {
+    border-color: rgba(0, 0, 0, 0.08);
+    background: #f9fafb;
+    color: #98a2b3;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
-.block_student_engagement-card--active {
-    border-color: rgba(25, 135, 84, 0.18);
-    background: linear-gradient(180deg, rgba(25, 135, 84, 0.08), rgba(25, 135, 84, 0.03));
+.status-good {
+    border-color: rgba(25, 135, 84, 0.28);
+    background: linear-gradient(180deg, rgba(25, 135, 84, 0.09), rgba(25, 135, 84, 0.03));
 }
 
-.block_student_engagement-card--inactive {
+.status-neutral {
     border-color: rgba(255, 193, 7, 0.28);
     background: linear-gradient(180deg, rgba(255, 193, 7, 0.12), rgba(255, 193, 7, 0.04));
 }
 
-.block_student_engagement-card--highlight {
-    border-color: rgba(13, 110, 253, 0.2);
-    background: linear-gradient(180deg, rgba(13, 110, 253, 0.08), rgba(13, 110, 253, 0.03));
-}
-
-.block_student_engagement-card--inactive-list {
-    border-color: rgba(220, 53, 69, 0.16);
-    background: linear-gradient(180deg, rgba(220, 53, 69, 0.06), rgba(220, 53, 69, 0.02));
-}
-
-.block_student_engagement-list {
-    margin: 0.6rem 0 0;
-    padding-left: 1.1rem;
-    list-style-type: disc;
-    list-style-position: outside;
-}
-
-.block_student_engagement-list__item {
-    display: list-item;
-    margin-bottom: 0.28rem;
-    color: #1f2933;
-    font-size: 0.84rem;
-    line-height: 1.4;
-}
-
-.block_student_engagement-list__text {
-    display: block;
-    max-width: 100%;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.block_student_engagement-empty {
-    color: #667085;
-}
-
-.block_student_engagement-footer {
-    padding: 0.8rem 0.95rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.block_student_engagement-footer__label {
-    color: #5f6b7a;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.block_student_engagement-footer__value {
-    margin-top: 0.25rem;
-    color: #344054;
-    font-size: 0.82rem;
-    line-height: 1.4;
+.status-danger {
+    border-color: rgba(220, 53, 69, 0.22);
+    background: linear-gradient(180deg, rgba(220, 53, 69, 0.09), rgba(220, 53, 69, 0.03));
 }
 
 .block_student_engagement-report {
