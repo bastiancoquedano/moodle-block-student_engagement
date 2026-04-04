@@ -237,16 +237,6 @@ class engagement_report {
             $params['risklevel'] = (int)$filters['risklevel'];
         }
 
-        if (!empty($filters['datefrom'])) {
-            $where .= " AND COALESCE(lastaccess.lastcourseaccess, 0) >= :datefrom";
-            $params['datefrom'] = (int)$filters['datefrom'];
-        }
-
-        if (!empty($filters['dateto'])) {
-            $where .= " AND COALESCE(lastaccess.lastcourseaccess, 0) <= :dateto";
-            $params['dateto'] = (int)$filters['dateto'];
-        }
-
         if ($filters['status'] === 'inactive' || $filters['legacyinactive']) {
             $where .= " AND (
                 COALESCE(lastaccess.lastcourseaccess, 0) = 0
@@ -419,22 +409,18 @@ class engagement_report {
         $atrisk = (!empty($filters['atrisk']) || (($filters['risklevel'] ?? '') === 'high_critical')) && $risklevel === null;
 
         $groupid = isset($filters['groupid']) ? max(0, (int)$filters['groupid']) : 0;
-        $datefrom = isset($filters['datefrom']) ? max(0, (int)$filters['datefrom']) : 0;
-        $dateto = isset($filters['dateto']) ? max(0, (int)$filters['dateto']) : 0;
         $status = $filters['status'] ?? 'all';
         if (!in_array($status, ['all', 'active', 'inactive'], true)) {
             $status = 'all';
         }
 
-        $customactive = ($risklevel !== null || $groupid > 0 || $datefrom > 0 || $dateto > 0 || $status !== 'all');
+        $customactive = ($risklevel !== null || $groupid > 0 || $status !== 'all');
         $legacyinactive = ($viewmode === 'inactive' && !$customactive);
 
         return [
             'risklevel' => $risklevel,
             'atrisk' => $atrisk,
             'groupid' => $groupid,
-            'datefrom' => $datefrom,
-            'dateto' => $dateto,
             'status' => $status,
             'legacyinactive' => $legacyinactive,
             'currenttime' => time(),

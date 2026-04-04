@@ -223,7 +223,7 @@
 }
 
 .block_student_engagement-report__filters .horizontal-filter-item {
-    flex: 0 0 calc((100% - (4 * 0.75rem)) / 5);
+    flex: 0 0 calc((100% - (2 * 0.75rem)) / 3);
     min-width: 0;
     box-sizing: border-box;
 }
@@ -250,31 +250,22 @@
     font-weight: 600;
 }
 
-.block_student_engagement-report__filters .horizontal-filter-item select,
-.block_student_engagement-report__filters .horizontal-filter-item input[type="date"],
-.block_student_engagement-report__filters .horizontal-filter-item input[name="datefrom"],
-.block_student_engagement-report__filters .horizontal-filter-item input[name="dateto"] {
+.block_student_engagement-report__filters .horizontal-filter-item select {
     width: 100%;
     min-height: 34px;
-}
-
-.block_student_engagement-report__filters .mform .fitem_actionbuttons {
-    margin: 0;
-    flex: 0 0 100%;
-    max-width: 100%;
-}
-
-.block_student_engagement-report__filters .mform .fitem_actionbuttons .felement {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.5rem;
-    flex-wrap: wrap;
 }
 
 .block_student_engagement-report__filters .block_student_engagement-filter-clear {
     display: inline-flex;
     align-items: center;
+}
+
+.block_student_engagement-report__filters .block_student_engagement-filter-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+    flex-wrap: wrap;
 }
 
 .block_student_engagement-report__active-filters {
@@ -424,13 +415,13 @@
     }
 
     .block_student_engagement-report__filters .horizontal-filter-item {
-        flex-basis: calc((100% - (2 * 0.75rem)) / 3);
+        flex-basis: calc((100% - 0.75rem) / 2);
     }
 }
 
 @media (max-width: 768px) {
     .block_student_engagement-report__filters .horizontal-filter-item {
-        flex-basis: calc((100% - 0.75rem) / 2);
+        flex-basis: 100%;
     }
 }
 
