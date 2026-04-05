@@ -16,6 +16,7 @@
 
 /**
  * Strings for component 'block_student_engagement', language 'es'.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano
@@ -27,7 +28,6 @@ $string['student_engagement:addinstance'] = 'Agregar un nuevo bloque de Particip
 $string['student_engagement:myaddinstance'] = 'Agregar un nuevo bloque de Participación estudiantil al tablero';
 $string['student_engagement:view'] = 'Ver bloque de Participación estudiantil';
 $string['student_engagement:viewreport'] = 'Ver reporte de Participación estudiantil';
-$string['contentnotready'] = 'Las métricas de participación aún no están disponibles.';
 $string['cachenotavailable'] = 'Las métricas de participación aún no se han calculado para este curso.';
 $string['dashboard_subtitle'] = 'Resumen de engagement cacheado para revision rapida docente.';
 $string['dashboard_active_caption'] = 'Estudiantes con actividad reciente.';
@@ -72,15 +72,12 @@ $string['risk_course_progress_mode_course_dates'] = 'Fechas del curso';
 $string['risk_course_progress_mode_graded_completion'] = 'Completitud calificable';
 
 $string['active_students'] = 'Estudiantes activos';
-$string['active_students_7_days'] = 'Estudiantes activos (7 dias)';
 $string['inactive_students'] = 'Estudiantes inactivos';
 $string['at_risk_students'] = 'Estudiantes en riesgo';
 $string['average_completion'] = 'Completitud promedio';
-$string['inactive_students_over_threshold'] = 'Estudiantes inactivos > 14 dias';
 $string['most_active_user'] = 'Usuario más activo';
 $string['most_active_interactions'] = 'Interacciones: {$a}';
 $string['no_inactive_students'] = 'No se encontraron estudiantes inactivos.';
-$string['no_most_active_user'] = 'No hay un estudiante activo disponible.';
 $string['last_calculated'] = 'Último cálculo';
 $string['task_calculate_engagement'] = 'Calcular y refrescar cache de engagement';
 $string['view_engagement_report'] = 'Ver reporte de participación';
@@ -91,7 +88,6 @@ $string['report_title'] = 'Reporte de participación';
 $string['report_subtitle'] = 'Métricas detalladas de engagement estudiantil para {$a}.';
 $string['report_formula'] = 'Fórmula del puntaje: actividades completadas hasta 70 puntos y eventos del curso hasta 30 puntos.';
 $string['report_student'] = 'Estudiante';
-$string['report_events'] = 'Eventos del curso';
 $string['report_completed'] = 'Actividades completadas';
 $string['report_score'] = 'Puntuación de engagement';
 $string['report_no_students'] = 'No se encontraron estudiantes en este curso.';
@@ -119,11 +115,13 @@ $string['filter_group'] = 'Grupo';
 $string['filter_status'] = 'Estado';
 $string['filter_status_active'] = 'Activo';
 $string['filter_status_inactive'] = 'Inactivo';
-$string['filter_date_from'] = 'Fecha desde';
-$string['filter_date_to'] = 'Fecha hasta';
 $string['filter_apply'] = 'Aplicar filtros';
 $string['filter_clear'] = 'Limpiar';
 $string['filters_active_summary'] = 'Filtros activos:';
+$string['export_excel'] = 'Exportar Excel';
+$string['export_metadata_generated_at'] = 'Generado el';
+$string['export_metadata_course'] = 'Curso';
+$string['export_metadata_exported_by'] = 'Exportado por';
 
 $string['risk_level_label_0'] = 'Normal';
 $string['risk_level_label_1'] = 'Observación';

@@ -16,6 +16,7 @@
 
 /**
  * Cache manager for Student Engagement metrics.
+ * @Author Bastian Coquedano
  *
  * This class encapsulates all persistence concerns for cached engagement
  * metrics by course, so block rendering can stay fast and predictable.

@@ -1,5 +1,7 @@
 # Student Engagement Block for Moodle
 
+**@Author Bastian Coquedano**
+
 ## Description
 
 `block_student_engagement` is a Moodle block plugin designed to help teachers identify participation patterns quickly through cached engagement metrics at course level.
