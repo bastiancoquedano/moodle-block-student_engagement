@@ -107,15 +107,15 @@ class report_table extends \table_sql {
     public static function format_export_row(\stdClass $row, bool $legacyinactiveview): array {
         if ($legacyinactiveview) {
             return [
-                (string)$row->studentname,
+                self::sanitize_spreadsheet_text((string)$row->studentname),
                 self::format_days_inactive($row),
-                self::format_last_access($row),
+                self::sanitize_spreadsheet_text(self::format_last_access($row)),
             ];
         }
 
         return [
-            (string)$row->studentname,
-            self::format_last_access($row),
+            self::sanitize_spreadsheet_text((string)$row->studentname),
+            self::sanitize_spreadsheet_text(self::format_last_access($row)),
             self::format_days_inactive($row),
             (string)(int)$row->recentevents,
             (string)((int)$row->completedcount . ' / ' . (int)$row->totalactivities . ' (' . (int)$row->completedprogress . '%)'),
@@ -124,9 +124,35 @@ class report_table extends \table_sql {
             self::format_nullable_grade($row->gradegap),
             (string)((int)$row->engagementscore . ' / 100'),
             (string)((int)$row->riskscore . ' / 100'),
-            get_string('risk_level_label_' . (int)$row->risklevel, 'block_student_engagement'),
-            self::format_risk_flags_text($row),
+            self::sanitize_spreadsheet_text(get_string('risk_level_label_' . (int)$row->risklevel, 'block_student_engagement')),
+            self::sanitize_spreadsheet_text(self::format_risk_flags_text($row)),
         ];
+    }
+
+    /**
+     * Neutralize spreadsheet formula prefixes in exported text cells.
+     *
+     * @param string $value
+     * @return string
+     */
+    public static function sanitize_spreadsheet_text(string $value): string {
+        $value = (string)$value;
+        if ($value === '') {
+            return $value;
+        }
+
+        // Ignore leading whitespace/control chars when deciding if a cell could be interpreted as a formula.
+        $leadingtrimmed = ltrim($value, " \t\r\n");
+        if ($leadingtrimmed === '') {
+            return $value;
+        }
+
+        $firstchar = \core_text::substr($leadingtrimmed, 0, 1);
+        if (in_array($firstchar, ['=', '+', '-', '@'], true)) {
+            return "'" . $value;
+        }
+
+        return $value;
     }
 
     /**
