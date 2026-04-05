@@ -42,7 +42,11 @@ require_login($course);
 $context = context_course::instance($courseid);
 require_capability('block/student_engagement:viewreport', $context);
 
-$groups = groups_get_all_groups($courseid) ?: [];
+// Restrict filterable groups to those the current user can legitimately access.
+// Users with accessallgroups can filter any course group; others are limited to their memberships.
+$canaccessallgroups = has_capability('moodle/site:accessallgroups', $context);
+$groupuserid = $canaccessallgroups ? 0 : (int)$USER->id;
+$groups = groups_get_all_groups($courseid, $groupuserid) ?: [];
 
 $filterformurl = new moodle_url('/blocks/student_engagement/report.php', [
     'courseid' => $courseid,
