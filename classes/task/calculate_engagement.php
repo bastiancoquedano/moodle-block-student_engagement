@@ -16,6 +16,7 @@
 
 /**
  * Scheduled task to refresh cached engagement metrics.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano

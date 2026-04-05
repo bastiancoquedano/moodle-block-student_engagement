@@ -1,3 +1,5 @@
+/* @Author Bastian Coquedano */
+
 .block_student_engagement-dashboard {
     display: flex;
     flex-direction: column;
@@ -174,6 +176,23 @@
     font-weight: 700;
 }
 
+.block_student_engagement-report__titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.block_student_engagement-report__export {
+    white-space: nowrap;
+}
+
+.block_student_engagement-report__export-wrap {
+    display: flex;
+    justify-content: flex-start;
+}
+
 .block_student_engagement-report__subtitle,
 .block_student_engagement-report__formula {
     margin-top: 0.45rem;
@@ -187,6 +206,9 @@
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 0.85rem;
     background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
 }
 
 .block_student_engagement-filter-form {
@@ -195,36 +217,57 @@
     gap: 0.8rem;
 }
 
-.block_student_engagement-filter-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+.block_student_engagement-report__filters .horizontal-filters {
+    display: flex;
+    flex-wrap: nowrap;
     gap: 0.75rem;
+    width: 100%;
 }
 
-.block_student_engagement-filter-item {
+.block_student_engagement-report__filters .horizontal-filter-item {
+    flex: 0 0 calc((100% - (2 * 0.75rem)) / 3);
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.block_student_engagement-report__filters .horizontal-filter-item .fitem.row {
+    margin: 0;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 0.35rem;
 }
 
-.block_student_engagement-filter-item label {
-    margin: 0;
+.block_student_engagement-report__filters .horizontal-filter-item .fitem.row > .col-form-label,
+.block_student_engagement-report__filters .horizontal-filter-item .fitem.row > .felement {
+    max-width: 100%;
+    flex: 0 0 100%;
+    padding: 0;
+}
+
+.block_student_engagement-report__filters .horizontal-filter-item .fitem.row > .col-form-label {
+    margin: 0 0 0.35rem;
     color: #475467;
     font-size: 0.78rem;
     font-weight: 600;
 }
 
-.block_student_engagement-filter-item select,
-.block_student_engagement-filter-item input[type="date"] {
+.block_student_engagement-report__filters .horizontal-filter-item select {
     width: 100%;
     min-height: 34px;
 }
 
-.block_student_engagement-filter-actions {
+.block_student_engagement-report__filters .block_student_engagement-filter-clear {
+    display: inline-flex;
+    align-items: center;
+}
+
+.block_student_engagement-report__filters .block_student_engagement-filter-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
     flex-wrap: wrap;
-    gap: 0.5rem;
 }
 
 .block_student_engagement-report__active-filters {
@@ -366,8 +409,26 @@
     .block_student_engagement-grid {
         grid-template-columns: 1fr;
     }
+}
 
-    .block_student_engagement-filter-grid {
-        grid-template-columns: 1fr;
+@media (max-width: 1024px) {
+    .block_student_engagement-report__filters .horizontal-filters {
+        flex-wrap: wrap;
+    }
+
+    .block_student_engagement-report__filters .horizontal-filter-item {
+        flex-basis: calc((100% - 0.75rem) / 2);
+    }
+}
+
+@media (max-width: 768px) {
+    .block_student_engagement-report__filters .horizontal-filter-item {
+        flex-basis: 100%;
+    }
+}
+
+@media (max-width: 560px) {
+    .block_student_engagement-report__filters .horizontal-filter-item {
+        flex-basis: 100%;
     }
 }

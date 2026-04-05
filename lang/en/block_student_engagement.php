@@ -16,6 +16,7 @@
 
 /**
  * Strings for component 'block_student_engagement', language 'en'.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano
@@ -27,7 +28,6 @@ $string['student_engagement:addinstance'] = 'Add a new Student Engagement block'
 $string['student_engagement:myaddinstance'] = 'Add a new Student Engagement block to Dashboard';
 $string['student_engagement:view'] = 'View Student Engagement block';
 $string['student_engagement:viewreport'] = 'View Student Engagement report';
-$string['contentnotready'] = 'Engagement metrics are not available yet.';
 $string['cachenotavailable'] = 'Engagement metrics have not been calculated for this course yet.';
 $string['dashboard_subtitle'] = 'Cached engagement overview for quick teacher review.';
 $string['dashboard_active_caption'] = 'Students with recent activity.';
@@ -72,15 +72,12 @@ $string['risk_course_progress_mode_course_dates'] = 'Course dates';
 $string['risk_course_progress_mode_graded_completion'] = 'Graded completion';
 
 $string['active_students'] = 'Active students';
-$string['active_students_7_days'] = 'Active students (7 days)';
 $string['inactive_students'] = 'Inactive students';
 $string['at_risk_students'] = 'At risk students';
 $string['average_completion'] = 'Average completion';
-$string['inactive_students_over_threshold'] = 'Inactive students > 14 days';
 $string['most_active_user'] = 'Most active user';
 $string['most_active_interactions'] = 'Interactions: {$a}';
 $string['no_inactive_students'] = 'No inactive students found.';
-$string['no_most_active_user'] = 'No active student available.';
 $string['last_calculated'] = 'Last calculated';
 $string['task_calculate_engagement'] = 'Calculate and refresh engagement cache';
 $string['view_engagement_report'] = 'View participation report';
@@ -91,7 +88,6 @@ $string['report_title'] = 'Participation report';
 $string['report_subtitle'] = 'Detailed student engagement metrics for {$a}.';
 $string['report_formula'] = 'Score formula: completed activities up to 70 points, course events up to 30 points.';
 $string['report_student'] = 'Student';
-$string['report_events'] = 'Course events';
 $string['report_completed'] = 'Completed activities';
 $string['report_score'] = 'Engagement score';
 $string['report_no_students'] = 'No students were found in this course.';
@@ -119,11 +115,13 @@ $string['filter_group'] = 'Group';
 $string['filter_status'] = 'Status';
 $string['filter_status_active'] = 'Active';
 $string['filter_status_inactive'] = 'Inactive';
-$string['filter_date_from'] = 'Date from';
-$string['filter_date_to'] = 'Date to';
 $string['filter_apply'] = 'Apply filters';
 $string['filter_clear'] = 'Clear';
 $string['filters_active_summary'] = 'Active filters:';
+$string['export_excel'] = 'Export Excel';
+$string['export_metadata_generated_at'] = 'Generated at';
+$string['export_metadata_course'] = 'Course';
+$string['export_metadata_exported_by'] = 'Exported by';
 
 $string['risk_level_label_0'] = 'Normal';
 $string['risk_level_label_1'] = 'Observation';
