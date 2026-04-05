@@ -127,16 +127,6 @@ class block_student_engagement_renderer extends plugin_renderer_base {
             'i/report',
             get_string('view_engagement_report', 'block_student_engagement')
         );
-        $items[] = $this->action_link(
-            $data->inactive_report_url,
-            'i/calendar',
-            get_string('view_inactive_users_report', 'block_student_engagement')
-        );
-        $items[] = $this->action_link(
-            $data->risk_report_url,
-            'i/warning',
-            get_string('view_at_risk_users_report', 'block_student_engagement')
-        );
         $items[] = $this->action_placeholder(
             'i/report',
             get_string('view_recommendations', 'block_student_engagement')

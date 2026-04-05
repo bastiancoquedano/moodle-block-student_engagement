@@ -26,6 +26,12 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
+    $settings->add(new admin_setting_heading(
+        'block_student_engagement/settings_section_general',
+        get_string('settings_section_general', 'block_student_engagement'),
+        ''
+    ));
+
     $settings->add(new admin_setting_configtext(
         'block_student_engagement/active_days_threshold',
         get_string('active_days_threshold', 'block_student_engagement'),
@@ -40,6 +46,12 @@ if ($ADMIN->fulltree) {
         get_string('inactive_days_threshold_desc', 'block_student_engagement'),
         14,
         PARAM_INT
+    ));
+
+    $settings->add(new admin_setting_heading(
+        'block_student_engagement/settings_section_report_export',
+        get_string('settings_section_report_export', 'block_student_engagement'),
+        ''
     ));
 
     $settings->add(new admin_setting_configtext(
@@ -58,11 +70,23 @@ if ($ADMIN->fulltree) {
         PARAM_INT
     ));
 
+    $settings->add(new admin_setting_heading(
+        'block_student_engagement/settings_section_risk_base',
+        get_string('settings_section_risk_base', 'block_student_engagement'),
+        ''
+    ));
+
     $settings->add(new admin_setting_configcheckbox(
         'block_student_engagement/risk_enabled',
         get_string('risk_enabled', 'block_student_engagement'),
         get_string('risk_enabled_desc', 'block_student_engagement'),
         1
+    ));
+
+    $settings->add(new admin_setting_heading(
+        'block_student_engagement/settings_section_risk_weights',
+        get_string('settings_section_risk_weights', 'block_student_engagement'),
+        ''
     ));
 
     $settings->add(new admin_setting_configtext(
@@ -95,6 +119,12 @@ if ($ADMIN->fulltree) {
         get_string('risk_participation_weight_desc', 'block_student_engagement'),
         15,
         PARAM_INT
+    ));
+
+    $settings->add(new admin_setting_heading(
+        'block_student_engagement/settings_section_risk_thresholds',
+        get_string('settings_section_risk_thresholds', 'block_student_engagement'),
+        ''
     ));
 
     $settings->add(new admin_setting_configtext(
@@ -151,6 +181,12 @@ if ($ADMIN->fulltree) {
         get_string('risk_critical_percentage_desc', 'block_student_engagement'),
         75,
         PARAM_INT
+    ));
+
+    $settings->add(new admin_setting_heading(
+        'block_student_engagement/settings_section_risk_progress',
+        get_string('settings_section_risk_progress', 'block_student_engagement'),
+        ''
     ));
 
     $settings->add(new admin_setting_configselect(

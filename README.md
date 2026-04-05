@@ -15,6 +15,9 @@ The plugin reads activity signals from Moodle data sources, calculates engagemen
 - Inactive students summary and inactive student name list
 - Most active student with interaction count
 - Engagement score calculation service for future extensions
+- Single quick access from block to the participation report
+- Course participation report with risk/status/group filters
+- XLSX export with security hardening controls
 - Daily scheduled task for automatic cache refresh
 - English and Spanish language support
 
@@ -68,17 +71,39 @@ This score is implemented as a reusable service method for future reporting and 
 The plugin now includes a course-level participation report accessible from the block via
 `View participation report`.
 
+The block intentionally exposes a single report entry point to reduce redundant actions.
+Inactive/at-risk views are still available inside the report using filters and compatible URLs.
+
 The report displays one row per student with:
 
 - total course events
 - completed activities shown as `X / total`
 - engagement score shown as `NN / 100`
+- risk metrics (risk score, level, and risk flags)
+- grade-related indicators (current grade, pass grade, grade gap)
+
+Export capabilities include:
+
+- XLSX export with spreadsheet formula neutralization in text cells
+- minimized export metadata (no internal username/id in headers)
+- configurable synchronous export row limit (`export_max_rows`) to prevent resource spikes
 
 Report score formula:
 
 - completed activities contribute up to `70` points
 - course events contribute up to `30` points
 - the event contribution uses the configurable admin setting `report_event_goal`
+
+## Security hardening implemented
+
+The plugin includes hardening work aligned with security issues SE-001..SE-006:
+
+- SE-001: neutralization of spreadsheet formula prefixes in exported text values.
+- SE-002: group filter authorization validation based on user-visible groups.
+- SE-003: export metadata minimization to avoid exposing internal identifiers.
+- SE-004: configurable guardrail for synchronous export volume (`export_max_rows`).
+- SE-005: Moodle Privacy API provider with metadata/export/delete coverage plus retention documentation.
+- SE-006: SQL hardening with placeholder discipline and closed `ORDER BY` whitelist, plus anti-SQLi regression tests.
 
 ## Cache strategy and scheduled task
 
