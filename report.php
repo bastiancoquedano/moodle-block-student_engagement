@@ -194,13 +194,23 @@ if ($export === 'excel') {
     );
     $writer->addRow(
         \OpenSpout\Common\Entity\Row::fromValues(
-            $padrow([get_string('export_metadata_course', 'block_student_engagement'), format_string($course->fullname) . ' (#' . $courseid . ')']),
+            $padrow([
+                get_string('export_metadata_course', 'block_student_engagement'),
+                \block_student_engagement\output\report_table::sanitize_spreadsheet_text(
+                    format_string($course->fullname) . ' (#' . $courseid . ')'
+                ),
+            ]),
             $boldcenterstyle
         )
     );
     $writer->addRow(
         \OpenSpout\Common\Entity\Row::fromValues(
-            $padrow([get_string('export_metadata_exported_by', 'block_student_engagement'), fullname($USER) . ' (' . $USER->username . ' #' . $USER->id . ')']),
+            $padrow([
+                get_string('export_metadata_exported_by', 'block_student_engagement'),
+                \block_student_engagement\output\report_table::sanitize_spreadsheet_text(
+                    fullname($USER) . ' (' . $USER->username . ' #' . $USER->id . ')'
+                ),
+            ]),
             $boldcenterstyle
         )
     );
