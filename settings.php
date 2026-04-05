@@ -50,6 +50,14 @@ if ($ADMIN->fulltree) {
         PARAM_INT
     ));
 
+    $settings->add(new admin_setting_configtext(
+        'block_student_engagement/export_max_rows',
+        get_string('export_max_rows', 'block_student_engagement'),
+        get_string('export_max_rows_desc', 'block_student_engagement'),
+        5000,
+        PARAM_INT
+    ));
+
     $settings->add(new admin_setting_configcheckbox(
         'block_student_engagement/risk_enabled',
         get_string('risk_enabled', 'block_student_engagement'),
