@@ -105,6 +105,26 @@ The plugin now includes backend foundations for academic risk analysis:
 
 Risk calculations remain cache-first and are not executed during block render.
 
+## Privacy and data retention
+
+The plugin includes a Moodle Privacy API provider at:
+
+- `classes/privacy/provider.php`
+
+Personal data handled by the plugin:
+
+- `block_student_engagement_risk`: per-user academic risk and engagement metrics by course.
+- `block_student_engagement_cache`: course cache with user references (`most_active_userid`, `inactive_userids`).
+
+Retention policy:
+
+- Data is kept as operational cache while the plugin is active.
+- Risk/cache records are refreshed by scheduled calculations and can be overwritten by newer values.
+- Privacy API deletion requests remove user-specific records and scrub user references from cache.
+- Context-wide deletion removes plugin data for the selected course context.
+
+This plugin does not currently implement an automatic time-based purge window; retention is managed through Moodle privacy workflows and course lifecycle operations.
+
 ## Current status
 
 Implemented in v1:
