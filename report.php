@@ -201,7 +201,7 @@ if ($export === 'excel') {
             $padrow([
                 get_string('export_metadata_course', 'block_student_engagement'),
                 \block_student_engagement\output\report_table::sanitize_spreadsheet_text(
-                    format_string($course->fullname) . ' (#' . $courseid . ')'
+                    format_string($course->fullname)
                 ),
             ]),
             $boldcenterstyle
@@ -212,7 +212,7 @@ if ($export === 'excel') {
             $padrow([
                 get_string('export_metadata_exported_by', 'block_student_engagement'),
                 \block_student_engagement\output\report_table::sanitize_spreadsheet_text(
-                    fullname($USER) . ' (' . $USER->username . ' #' . $USER->id . ')'
+                    fullname($USER)
                 ),
             ]),
             $boldcenterstyle
