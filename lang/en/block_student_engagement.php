@@ -42,6 +42,8 @@ $string['inactive_days_threshold'] = 'Inactive days threshold';
 $string['inactive_days_threshold_desc'] = 'Number of days without activity to consider a student inactive.';
 $string['report_event_goal'] = 'Report event goal';
 $string['report_event_goal_desc'] = 'Number of course events required to award the full 30 event points in the engagement report.';
+$string['export_max_rows'] = 'Maximum rows for synchronous export';
+$string['export_max_rows_desc'] = 'Maximum number of rows allowed for direct XLSX export. Requests above this limit are blocked to protect platform performance.';
 $string['risk_enabled'] = 'Enable academic risk calculation';
 $string['risk_enabled_desc'] = 'When enabled, cron calculates per-student academic risk and stores results in cache tables.';
 $string['risk_grade_weight'] = 'Risk weight: grade';
@@ -122,6 +124,7 @@ $string['export_excel'] = 'Export Excel';
 $string['export_metadata_generated_at'] = 'Generated at';
 $string['export_metadata_course'] = 'Course';
 $string['export_metadata_exported_by'] = 'Exported by';
+$string['export_limit_reached'] = 'Export blocked: this report has more rows than the configured limit ({$a}). Please narrow filters and try again.';
 
 $string['risk_level_label_0'] = 'Normal';
 $string['risk_level_label_1'] = 'Observation';
