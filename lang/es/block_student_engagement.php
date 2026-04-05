@@ -138,3 +138,29 @@ $string['risk_flag_below_pass_grade'] = 'Bajo nota mínima';
 $string['risk_flag_inactive'] = 'Inactivo';
 $string['risk_flag_low_recent_activity'] = 'Actividad reciente baja';
 $string['risk_flag_behind_expected_progress'] = 'Bajo el progreso esperado';
+
+$string['privacy:metadata:block_student_engagement_risk'] = 'Almacena metricas de engagement y riesgo por estudiante y curso.';
+$string['privacy:metadata:block_student_engagement_risk:courseid'] = 'ID del curso asociado al registro.';
+$string['privacy:metadata:block_student_engagement_risk:userid'] = 'ID del usuario asociado al registro.';
+$string['privacy:metadata:block_student_engagement_risk:current_grade'] = 'Nota actual del curso usada en el analisis de riesgo.';
+$string['privacy:metadata:block_student_engagement_risk:pass_grade'] = 'Nota minima de aprobacion configurada para el item de calificacion del curso.';
+$string['privacy:metadata:block_student_engagement_risk:grade_gap'] = 'Diferencia entre la nota actual y la nota minima de aprobacion.';
+$string['privacy:metadata:block_student_engagement_risk:completion_percent'] = 'Porcentaje de completitud usado en los calculos de riesgo.';
+$string['privacy:metadata:block_student_engagement_risk:days_inactive'] = 'Dias desde la ultima actividad.';
+$string['privacy:metadata:block_student_engagement_risk:recent_events'] = 'Cantidad de eventos recientes usada en el puntaje.';
+$string['privacy:metadata:block_student_engagement_risk:attendance_percent'] = 'Porcentaje de asistencia cuando esta disponible.';
+$string['privacy:metadata:block_student_engagement_risk:engagement_score'] = 'Puntaje de engagement del estudiante en el curso.';
+$string['privacy:metadata:block_student_engagement_risk:risk_score'] = 'Puntaje de riesgo calculado.';
+$string['privacy:metadata:block_student_engagement_risk:risk_level'] = 'Nivel de riesgo calculado.';
+$string['privacy:metadata:block_student_engagement_risk:risk_flags'] = 'Factores de riesgo que explican el resultado.';
+$string['privacy:metadata:block_student_engagement_risk:last_calculated'] = 'Marca de tiempo del ultimo calculo de riesgo.';
+
+$string['privacy:metadata:block_student_engagement_cache'] = 'Almacena cache de engagement por curso con referencias de usuario.';
+$string['privacy:metadata:block_student_engagement_cache:courseid'] = 'ID del curso asociado al cache.';
+$string['privacy:metadata:block_student_engagement_cache:most_active_userid'] = 'ID del usuario marcado como mas activo en el periodo cacheado.';
+$string['privacy:metadata:block_student_engagement_cache:inactive_userids'] = 'Lista JSON de IDs de usuarios considerados inactivos en el periodo cacheado.';
+$string['privacy:metadata:block_student_engagement_cache:last_calculated'] = 'Marca de tiempo de la ultima actualizacion del cache de engagement.';
+$string['privacy:metadata:block_student_engagement_cache:risk_last_calculated'] = 'Marca de tiempo de la ultima actualizacion de agregados de riesgo.';
+
+$string['privacy:export:risk'] = 'Datos de riesgo academico';
+$string['privacy:export:cache_references'] = 'Referencias en cache del curso';
