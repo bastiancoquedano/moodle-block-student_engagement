@@ -16,6 +16,7 @@
 
 /**
  * Engagement analyser for Student Engagement block.
+ * @Author Bastian Coquedano
  *
  * This class is responsible for calculating engagement metrics using Moodle
  * internal tables (especially logstore_standard_log). It is intentionally

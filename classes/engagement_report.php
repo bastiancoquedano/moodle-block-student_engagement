@@ -16,6 +16,7 @@
 
 /**
  * Engagement report data service.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano

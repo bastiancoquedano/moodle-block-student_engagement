@@ -16,6 +16,7 @@
 
 /**
  * Participation report table.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano
@@ -52,6 +53,7 @@ class report_table extends \table_sql {
      */
     public static function is_legacy_inactive_view(string $viewmode, array $filters): bool {
         $normalisedview = ($viewmode === 'inactive') ? 'inactive' : 'all';
+        // Treat any explicit risk-level selection as a custom filter, even if it comes via URL aliasing.
         $riskfilteractive = isset($filters['risklevel']) &&
             $filters['risklevel'] !== '' &&
             $filters['risklevel'] !== null &&
@@ -142,6 +144,7 @@ class report_table extends \table_sql {
         $this->viewmode = ($viewmode === 'inactive') ? 'inactive' : 'all';
         $this->filters = $filters;
 
+        // Preserve old "inactive report" layout only when no extra filters are active.
         $this->legacyinactiveview = self::is_legacy_inactive_view($this->viewmode, $filters);
 
         if ($this->legacyinactiveview) {
@@ -212,6 +215,7 @@ class report_table extends \table_sql {
         $direction = 'ASC';
         $sortcolumn = 'student';
         if (!empty($sort)) {
+            // Moodle returns expressions like "risklevel DESC"; split defensively to keep safe defaults.
             $parts = preg_split('/\s+/', trim($sort));
             $sortcolumn = $parts[0] ?? 'student';
             $direction = strtoupper($parts[1] ?? 'ASC');
@@ -423,6 +427,7 @@ class report_table extends \table_sql {
      */
     private static function resolve_risk_flag_label(string $flag): string {
         $flag = self::normalise_risk_flag_key($flag);
+        // Backward compatibility for previously used keys and renamed labels.
         $aliases = [
             'low_grade' => 'below_pass_grade',
             'inactivity' => 'inactive',
