@@ -60,7 +60,8 @@ class engagement_report {
      * Return report rows for a course.
      *
      * @param int $courseid
-     * @param string $sort
+     * @param string $sortcolumn
+     * @param string $sortdirection
      * @param int $limitfrom
      * @param int $limitnum
      * @param string $viewmode
@@ -69,7 +70,8 @@ class engagement_report {
      */
     public static function get_rows(
         int $courseid,
-        string $sort,
+        string $sortcolumn = 'risklevel',
+        string $sortdirection = 'DESC',
         int $limitfrom = 0,
         int $limitnum = 0,
         string $viewmode = 'all',
@@ -81,6 +83,7 @@ class engagement_report {
         $parts = self::build_shared_sql_parts($courseid, $filterdata);
         $totalactivities = self::get_total_completable_activities($courseid);
         $eventgoal = self::get_event_goal();
+        $ordersql = self::get_sort_sql($sortcolumn, $sortdirection, $viewmode);
 
         $scoreexpression = self::get_score_sql();
         $sql = "SELECT students.userid,
@@ -113,7 +116,7 @@ class engagement_report {
                        {$scoreexpression} AS engagementscore
                   {$parts['from']}
                  {$parts['where']}
-              ORDER BY {$sort}";
+              ORDER BY {$ordersql}";
 
         $params = $parts['params'];
         $params['eventgoalcompare'] = max(1, $eventgoal);
