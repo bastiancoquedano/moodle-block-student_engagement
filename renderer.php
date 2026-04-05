@@ -127,20 +127,6 @@ class block_student_engagement_renderer extends plugin_renderer_base {
             'i/report',
             get_string('view_engagement_report', 'block_student_engagement')
         );
-        $items[] = $this->action_link(
-            $data->inactive_report_url,
-            'i/calendar',
-            get_string('view_inactive_users_report', 'block_student_engagement')
-        );
-        $items[] = $this->action_link(
-            $data->risk_report_url,
-            'i/warning',
-            get_string('view_at_risk_users_report', 'block_student_engagement')
-        );
-        $items[] = $this->action_placeholder(
-            'i/report',
-            get_string('view_recommendations', 'block_student_engagement')
-        );
 
         return html_writer::div(implode('', $items), 'block_student_engagement-actions');
     }
@@ -160,26 +146,5 @@ class block_student_engagement_renderer extends plugin_renderer_base {
 
         $content = $this->pix_icon($icon, '') . html_writer::span(s($label), 'block_student_engagement-action__label');
         return html_writer::link($url, $content, ['class' => 'block_student_engagement-action']);
-    }
-
-    /**
-     * Render disabled placeholder action.
-     *
-     * @param string $icon
-     * @param string $label
-     * @return string
-     */
-    private function action_placeholder(string $icon, string $label): string {
-        $content = $this->pix_icon($icon, '') . html_writer::span(s($label), 'block_student_engagement-action__label');
-        $content .= html_writer::span(
-            s(get_string('coming_soon', 'block_student_engagement')),
-            'block_student_engagement-action__badge'
-        );
-
-        return html_writer::tag('span', $content, [
-            'class' => 'block_student_engagement-action block_student_engagement-action--disabled',
-            'aria-disabled' => 'true',
-            'role' => 'button',
-        ]);
     }
 }
