@@ -25,6 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026040400; // The current plugin version (Date: YYYYMMDDXX).
+$plugin->version   = 2026040401; // The current plugin version (Date: YYYYMMDDXX).
 $plugin->requires  = 2024100100; // Requires this Moodle version (4.5).
 $plugin->component = 'block_student_engagement';
