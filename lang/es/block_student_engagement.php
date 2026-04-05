@@ -36,6 +36,13 @@ $string['dashboard_at_risk_caption'] = 'Estudiantes que requieren seguimiento.';
 $string['dashboard_completion_caption'] = 'Progreso promedio en actividades completables.';
 $string['nopermissions'] = 'No tienes permisos para ver este bloque.';
 
+$string['settings_section_general'] = 'Configuración general de engagement';
+$string['settings_section_report_export'] = 'Reportes y exportación';
+$string['settings_section_risk_base'] = 'Riesgo académico: activación y parámetros base';
+$string['settings_section_risk_weights'] = 'Riesgo académico: ponderaciones';
+$string['settings_section_risk_thresholds'] = 'Riesgo académico: umbrales y niveles';
+$string['settings_section_risk_progress'] = 'Riesgo académico: modo de progreso del curso';
+
 $string['active_days_threshold'] = 'Umbral de días activos';
 $string['active_days_threshold_desc'] = 'Número de días con actividad reciente para considerar a un estudiante activo.';
 $string['inactive_days_threshold'] = 'Umbral de días de inactividad';

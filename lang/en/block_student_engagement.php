@@ -36,6 +36,13 @@ $string['dashboard_at_risk_caption'] = 'Students requiring follow-up.';
 $string['dashboard_completion_caption'] = 'Average progress in completable activities.';
 $string['nopermissions'] = 'You do not have permission to view this block.';
 
+$string['settings_section_general'] = 'General engagement settings';
+$string['settings_section_report_export'] = 'Reports and export';
+$string['settings_section_risk_base'] = 'Academic risk: enablement and base parameters';
+$string['settings_section_risk_weights'] = 'Academic risk: weights';
+$string['settings_section_risk_thresholds'] = 'Academic risk: thresholds and levels';
+$string['settings_section_risk_progress'] = 'Academic risk: course progress mode';
+
 $string['active_days_threshold'] = 'Active days threshold';
 $string['active_days_threshold_desc'] = 'Number of days with recent activity to consider a student active.';
 $string['inactive_days_threshold'] = 'Inactive days threshold';
