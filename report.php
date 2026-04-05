@@ -166,10 +166,10 @@ if ($export === 'excel') {
     // Export uses the same sort defaults as the current view so on-screen and downloaded data remain consistent.
     $defaultsort = ($legacyinactive) ? 'daysinactive' : 'risklevel';
     $defaultdir = 'DESC';
-    $ordersql = \block_student_engagement\engagement_report::get_sort_sql($defaultsort, $defaultdir, $effectiveview);
     $rows = \block_student_engagement\engagement_report::get_rows(
         $courseid,
-        $ordersql,
+        $defaultsort,
+        $defaultdir,
         0,
         0,
         $effectiveview,
