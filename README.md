@@ -125,6 +125,19 @@ Retention policy:
 
 This plugin does not currently implement an automatic time-based purge window; retention is managed through Moodle privacy workflows and course lifecycle operations.
 
+## SQL hardening policy
+
+Secure-by-default SQL rules for this plugin:
+
+- Every variable value in SQL must use named placeholders (`:param`) with `$DB` methods.
+- User input must be validated first (`required_param` / `optional_param` + strict whitelist/range checks), then mapped to placeholders.
+- Dynamic `ORDER BY` is allowed only through closed whitelists (`engagement_report::get_sort_sql`), never by concatenating raw input.
+- `IN (...)` clauses must be built with `$DB->get_in_or_equal(...)`.
+
+Anti-SQLi regression coverage:
+
+- `tests/engagement_report_security_test.php` validates sort whitelist behavior and malicious filter payload handling.
+
 ## Current status
 
 Implemented in v1:

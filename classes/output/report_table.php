@@ -247,10 +247,10 @@ class report_table extends \table_sql {
             $direction = strtoupper($parts[1] ?? 'ASC');
         }
 
-        $ordersql = \block_student_engagement\engagement_report::get_sort_sql($sortcolumn, $direction, $this->viewmode);
         $this->rawdata = \block_student_engagement\engagement_report::get_rows(
             $this->courseid,
-            $ordersql,
+            $sortcolumn,
+            $direction,
             $this->get_page_start(),
             $this->get_page_size(),
             $this->viewmode,
