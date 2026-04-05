@@ -42,6 +42,8 @@ $string['inactive_days_threshold'] = 'Umbral de días de inactividad';
 $string['inactive_days_threshold_desc'] = 'Número de días sin actividad para considerar a un estudiante inactivo.';
 $string['report_event_goal'] = 'Meta de eventos del reporte';
 $string['report_event_goal_desc'] = 'Número de eventos del curso necesarios para otorgar los 30 puntos completos en el reporte de engagement.';
+$string['export_max_rows'] = 'Maximo de filas para exportacion sincrona';
+$string['export_max_rows_desc'] = 'Numero maximo de filas permitido para exportacion XLSX directa. Las solicitudes que superen este limite se bloquean para proteger el rendimiento de la plataforma.';
 $string['risk_enabled'] = 'Habilitar calculo de riesgo academico';
 $string['risk_enabled_desc'] = 'Cuando esta habilitado, el cron calcula riesgo academico por estudiante y lo guarda en tablas de cache.';
 $string['risk_grade_weight'] = 'Peso de riesgo: nota';
@@ -122,6 +124,7 @@ $string['export_excel'] = 'Exportar Excel';
 $string['export_metadata_generated_at'] = 'Generado el';
 $string['export_metadata_course'] = 'Curso';
 $string['export_metadata_exported_by'] = 'Exportado por';
+$string['export_limit_reached'] = 'Exportacion bloqueada: este reporte tiene mas filas que el limite configurado ({$a}). Aplica filtros mas acotados y vuelve a intentarlo.';
 
 $string['risk_level_label_0'] = 'Normal';
 $string['risk_level_label_1'] = 'Observación';

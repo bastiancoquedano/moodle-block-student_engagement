@@ -148,6 +148,20 @@ $studentcount = \block_student_engagement\engagement_report::count_rows($coursei
 
 if ($export === 'excel') {
     require_sesskey();
+    $exportmaxrows = (int)get_config('block_student_engagement', 'export_max_rows');
+    if ($exportmaxrows <= 0) {
+        $exportmaxrows = 5000;
+    }
+
+    // Guardrail: avoid synchronous exports that can overload memory/CPU on very large courses.
+    if ($studentcount > $exportmaxrows) {
+        redirect(
+            $url,
+            get_string('export_limit_reached', 'block_student_engagement', $exportmaxrows),
+            null,
+            \core\output\notification::NOTIFY_ERROR
+        );
+    }
 
     // Export uses the same sort defaults as the current view so on-screen and downloaded data remain consistent.
     $defaultsort = ($legacyinactive) ? 'daysinactive' : 'risklevel';
