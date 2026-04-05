@@ -16,6 +16,7 @@
 
 /**
  * Strings for component 'block_student_engagement', language 'es'.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano

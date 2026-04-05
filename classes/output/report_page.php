@@ -20,6 +20,7 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Report page UI helper.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano
@@ -86,6 +87,7 @@ class report_page {
             ['class' => 'btn btn-secondary block_student_engagement-filter-clear']
         );
         $actionshtml = \html_writer::div($applybutton . $clearlink, 'block_student_engagement-filter-actions');
+        // Moodle forms render a fixed closing </form>; inject actions just before it to keep one valid form submit flow.
         $formhtml = preg_replace('/<\/form>\s*$/', $actionshtml . '</form>', $formhtml) ?? ($formhtml . $actionshtml);
 
         $content = \html_writer::start_div('block_student_engagement-report__filters');
@@ -137,8 +139,10 @@ class report_page {
     ): string {
         if ($studentcount === 0) {
             if (!empty($activesummary)) {
+                // Empty due to filters: show a contextual message so users know data exists but does not match criteria.
                 $emptystring = 'report_no_students_with_filters';
             } else {
+                // Empty without filters: show baseline empty state according to current view mode.
                 $emptystring = ($legacyinactive) ? 'report_no_inactive_students' : 'report_no_students';
             }
             return $output->notification(get_string($emptystring, 'block_student_engagement'), 'info');

@@ -22,6 +22,7 @@ require_once($CFG->libdir . '/formslib.php');
 
 /**
  * Report filters form.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano
@@ -47,6 +48,7 @@ class report_filters_form extends \moodleform {
         $mform->addElement('hidden', 'view', $view);
         $mform->setType('view', PARAM_ALPHA);
 
+        // Filters are rendered in one horizontal row to keep quick comparison between selectors.
         $mform->addElement('html', '<div class="horizontal-filters">');
 
         $riskoptions = [
@@ -64,6 +66,7 @@ class report_filters_form extends \moodleform {
         $mform->addElement('html', '</div>');
 
         $groupoptions = [0 => get_string('filter_all', 'block_student_engagement')];
+        // Group options come from course context; values are cast to int to keep stable filter URLs.
         foreach ($groups as $group) {
             $groupoptions[(int)$group->id] = format_string($group->name);
         }

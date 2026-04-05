@@ -16,6 +16,7 @@
 
 /**
  * Detailed participation report page.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano
@@ -27,6 +28,7 @@ require_once($CFG->dirroot . '/group/lib.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 $view = optional_param('view', 'all', PARAM_ALPHA);
+// Keep report views in a strict whitelist to avoid unsupported query branches downstream.
 $view = in_array($view, ['all', 'inactive', 'atrisk'], true) ? $view : 'all';
 $export = optional_param('export', '', PARAM_ALPHA);
 
@@ -62,11 +64,14 @@ $filterform = new \block_student_engagement\form\report_filters_form(
     ['class' => 'block_student_engagement-filter-form']
 );
 if ($submittedfilterdata = $filterform->get_data()) {
+    // Re-read filter values from the canonical form source when submitted.
+    // This keeps URL/manual values and form values aligned in one sanitization pipeline.
     $risklevelraw = trim((string)($submittedfilterdata->risklevel ?? 'all'));
     $groupidraw = max(0, (int)($submittedfilterdata->groupid ?? 0));
     $statusraw = (string)($submittedfilterdata->status ?? 'all');
 }
 
+// Support risk-level aliases used by UI while normalising all values into a predictable set.
 if ($risklevelraw === 'all') {
     $risklevel = 'all';
 } else if ($risklevelraw === 'high_critical') {
@@ -91,11 +96,13 @@ $filterform->set_data($filterformdata);
 
 $filters = [
     'risklevel' => $risklevel,
+    // "atrisk" view acts like a convenience shortcut over risk-level filtering.
     'atrisk' => ($view === 'atrisk' && $risklevel === 'all') || $risklevel === 'high_critical',
     'groupid' => $groupid,
     'status' => $status,
 ];
 
+// Legacy inactive mode is preserved only when no custom filters are active, to avoid changing historical UX.
 $hascustomfilters = ($risklevel !== 'all' || $view === 'atrisk' || $groupid > 0 || $status !== 'all');
 $legacyinactive = ($view === 'inactive' && !$hascustomfilters);
 $effectiveview = $legacyinactive ? 'inactive' : 'all';
@@ -138,6 +145,7 @@ $studentcount = \block_student_engagement\engagement_report::count_rows($coursei
 if ($export === 'excel') {
     require_sesskey();
 
+    // Export uses the same sort defaults as the current view so on-screen and downloaded data remain consistent.
     $defaultsort = ($legacyinactive) ? 'daysinactive' : 'risklevel';
     $defaultdir = 'DESC';
     $ordersql = \block_student_engagement\engagement_report::get_sort_sql($defaultsort, $defaultdir, $effectiveview);
@@ -157,6 +165,7 @@ if ($export === 'excel') {
         return array_pad($row, $colcount, '');
     };
 
+    // Close PHP session before streaming the XLSX to avoid blocking other concurrent requests.
     \core_php_time_limit::raise();
     \core\session\manager::write_close();
     \core_form\util::form_download_complete();

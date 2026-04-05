@@ -16,6 +16,7 @@
 
 /**
  * Main class for Student Engagement block.
+ * @Author Bastian Coquedano
  *
  * @package    block_student_engagement
  * @copyright  2026 Bastian Coquedano
