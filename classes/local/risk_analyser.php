@@ -34,9 +34,6 @@ class risk_analyser {
     /** @var string */
     private const RISK_TABLE = 'block_student_engagement_risk';
 
-    /** @var string */
-    private const EVENT_COURSE_VIEWED = '\\core\\event\\course_viewed';
-
     /** @var int */
     private const LEVEL_NORMAL = 0;
     /** @var int */
@@ -104,6 +101,7 @@ class risk_analyser {
                 'pass_grade' => $passgrade,
                 'completion_percent' => $completionpercent,
                 'days_inactive' => $daysinactive,
+                'last_activity_timecreated' => (int)($lastactivityts ?? 0),
                 'recent_events' => $recenteventcount,
                 'engagement_score' => $engagementscore,
                 'course_progress_percent' => $courseprogress,
@@ -140,6 +138,7 @@ class risk_analyser {
 
         $completionpercent = max(0, min(100, (int)($dataset['completion_percent'] ?? 50)));
         $daysinactive = max(0, (int)($dataset['days_inactive'] ?? 0));
+        $lastactivity = max(0, (int)($dataset['last_activity_timecreated'] ?? 0));
         $recentevents = max(0, (int)($dataset['recent_events'] ?? 0));
         $attpercent = self::to_nullable_float($dataset['attendance_percent'] ?? null);
         $engagementscore = max(0, (int)($dataset['engagement_score'] ?? 0));
@@ -175,6 +174,7 @@ class risk_analyser {
             'grade_gap' => $gradegap,
             'completion_percent' => $completionpercent,
             'days_inactive' => $daysinactive,
+            'last_activity_timecreated' => $lastactivity,
             'recent_events' => $recentevents,
             'attendance_percent' => $attpercent,
             'engagement_score' => $engagementscore,
@@ -217,6 +217,7 @@ class risk_analyser {
                 'grade_gap' => $row['grade_gap'],
                 'completion_percent' => (int)$row['completion_percent'],
                 'days_inactive' => (int)$row['days_inactive'],
+                'last_activity_timecreated' => (int)($row['last_activity_timecreated'] ?? 0),
                 'recent_events' => (int)$row['recent_events'],
                 'attendance_percent' => $row['attendance_percent'],
                 'engagement_score' => (int)$row['engagement_score'],
@@ -476,17 +477,15 @@ class risk_analyser {
         global $DB;
 
         $since = max(0, time() - (max(0, $days) * DAYSECS));
-        $sql = "SELECT l.userid, COUNT(1) AS eventcount
-                  FROM {logstore_standard_log} l
-                 WHERE l.courseid = :courseid
-                   AND l.userid > 0
-                   AND l.timecreated >= :since
-                   AND l.eventname <> :courseviewed
-              GROUP BY l.userid";
+        $sql = "SELECT la.userid, SUM(la.event_count) AS eventcount
+                  FROM {" . \block_student_engagement\logstore_aggregator::TABLE . "} la
+                 WHERE la.courseid = :courseid
+                   AND la.userid > 0
+                   AND la.timecreated >= :since
+              GROUP BY la.userid";
         $rows = $DB->get_records_sql($sql, [
             'courseid' => $courseid,
             'since' => $since,
-            'courseviewed' => self::EVENT_COURSE_VIEWED,
         ]);
 
         $map = [];
@@ -504,17 +503,13 @@ class risk_analyser {
     private static function get_last_activity_timestamps(int $courseid): array {
         global $DB;
 
-        $sql = "SELECT l.userid, MAX(l.timecreated) AS lastactivity
-                  FROM {logstore_standard_log} l
-                 WHERE l.courseid = :courseid
-                   AND l.userid > 0
-                   AND l.eventname <> :courseviewed
-              GROUP BY l.userid";
+        $sql = "SELECT la.userid, MAX(la.timecreated) AS lastactivity
+                  FROM {" . \block_student_engagement\logstore_aggregator::TABLE . "} la
+                 WHERE la.courseid = :courseid
+                   AND la.userid > 0
+              GROUP BY la.userid";
 
-        $rows = $DB->get_records_sql($sql, [
-            'courseid' => $courseid,
-            'courseviewed' => self::EVENT_COURSE_VIEWED,
-        ]);
+        $rows = $DB->get_records_sql($sql, ['courseid' => $courseid]);
 
         $map = [];
         foreach ($rows as $row) {

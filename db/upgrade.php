@@ -137,5 +137,50 @@ function xmldb_block_student_engagement_upgrade(int $oldversion): bool {
         upgrade_block_savepoint(true, 2026040400, 'student_engagement');
     }
 
+    if ($oldversion < 2026040800) {
+        $cachetable = new xmldb_table('block_student_engagement_cache');
+
+        $lastlogid = new xmldb_field('last_log_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($cachetable, $lastlogid)) {
+            $dbman->add_field($cachetable, $lastlogid);
+        }
+
+        $lastlogtimecreated = new xmldb_field('last_log_timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($cachetable, $lastlogtimecreated)) {
+            $dbman->add_field($cachetable, $lastlogtimecreated);
+        }
+
+        $risktable = new xmldb_table('block_student_engagement_risk');
+        $lastactivity = new xmldb_field('last_activity_timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($risktable, $lastactivity)) {
+            $dbman->add_field($risktable, $lastactivity);
+        }
+
+        $logaggtable = new xmldb_table('block_student_engagement_log_agg');
+        $logaggtable->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $logaggtable->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $logaggtable->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $logaggtable->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $logaggtable->add_field('event_count', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $logaggtable->add_field('last_log_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $logaggtable->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+        if (!$dbman->table_exists($logaggtable)) {
+            $dbman->create_table($logaggtable);
+        }
+
+        $courseusertimeindex = new xmldb_index('course_user_time_uix', XMLDB_INDEX_UNIQUE, ['courseid', 'userid', 'timecreated']);
+        if (!$dbman->index_exists($logaggtable, $courseusertimeindex)) {
+            $dbman->add_index($logaggtable, $courseusertimeindex);
+        }
+
+        $coursetimeindex = new xmldb_index('course_time_ix', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'timecreated']);
+        if (!$dbman->index_exists($logaggtable, $coursetimeindex)) {
+            $dbman->add_index($logaggtable, $coursetimeindex);
+        }
+
+        upgrade_block_savepoint(true, 2026040800, 'student_engagement');
+    }
+
     return true;
 }

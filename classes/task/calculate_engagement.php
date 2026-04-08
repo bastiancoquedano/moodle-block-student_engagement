@@ -62,12 +62,25 @@ class calculate_engagement extends \core\task\scheduled_task {
         $recordset = $DB->get_recordset_select('course', $select, $params, 'id ASC', 'id, fullname');
 
         foreach ($recordset as $course) {
+            $transaction = null;
             try {
-                $payload = \block_student_engagement\engagement_analyser::analyse_course((int)$course->id);
+                $courseid = (int)$course->id;
+                $cache = \block_student_engagement\cache_manager::get_course_cache($courseid);
+                $lastlogid = $cache ? (int)($cache->last_log_id ?? 0) : 0;
+                $lastlogtimecreated = $cache ? (int)($cache->last_log_timecreated ?? 0) : 0;
+
+                $transaction = $DB->start_delegated_transaction();
+
+                $logcursor = \block_student_engagement\logstore_aggregator::sync_course($courseid, $lastlogid);
+                $payload = \block_student_engagement\engagement_analyser::analyse_course($courseid);
+                $payload->last_log_id = (int)$logcursor->last_log_id;
+                $payload->last_log_timecreated = ((int)$logcursor->last_log_timecreated > 0)
+                    ? (int)$logcursor->last_log_timecreated
+                    : $lastlogtimecreated;
 
                 if ($this->is_risk_enabled()) {
-                    $riskresult = \block_student_engagement\local\risk_analyser::analyse_course((int)$course->id);
-                    \block_student_engagement\local\risk_analyser::upsert_course_risk((int)$course->id, $riskresult['rows']);
+                    $riskresult = \block_student_engagement\local\risk_analyser::analyse_course($courseid);
+                    \block_student_engagement\local\risk_analyser::upsert_course_risk($courseid, $riskresult['rows']);
                     $payload->at_risk_count = (int)$riskresult['aggregates']['at_risk_count'];
                     $payload->critical_risk_count = (int)$riskresult['aggregates']['critical_risk_count'];
                     $payload->average_completion_percent = (int)$riskresult['aggregates']['average_completion_percent'];
@@ -75,8 +88,17 @@ class calculate_engagement extends \core\task\scheduled_task {
                 }
 
                 \block_student_engagement\cache_manager::save_course_engagement($payload);
+                $transaction->allow_commit();
+                $transaction = null;
                 mtrace('Updated engagement cache for course ' . (int)$course->id . ': ' . $course->fullname);
             } catch (\Throwable $exception) {
+                if ($transaction !== null) {
+                    try {
+                        $transaction->rollback($exception);
+                    } catch (\Throwable $rollbackexception) {
+                        $exception = $rollbackexception;
+                    }
+                }
                 // Continue processing the remaining courses even if one course fails.
                 mtrace(
                     'Failed to update engagement cache for course ' . (int)$course->id . ': ' .

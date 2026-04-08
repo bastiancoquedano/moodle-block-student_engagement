@@ -51,6 +51,9 @@ class provider implements
     /** @var string */
     private const RISK_TABLE = 'block_student_engagement_risk';
 
+    /** @var string */
+    private const LOG_AGG_TABLE = 'block_student_engagement_log_agg';
+
     /**
      * Describe stored personal data.
      *
@@ -73,6 +76,7 @@ class provider implements
             'risk_level' => 'privacy:metadata:block_student_engagement_risk:risk_level',
             'risk_flags' => 'privacy:metadata:block_student_engagement_risk:risk_flags',
             'last_calculated' => 'privacy:metadata:block_student_engagement_risk:last_calculated',
+            'last_activity_timecreated' => 'privacy:metadata:block_student_engagement_risk:last_activity_timecreated',
         ], 'privacy:metadata:block_student_engagement_risk');
 
         $collection->add_database_table(self::CACHE_TABLE, [
@@ -81,7 +85,17 @@ class provider implements
             'inactive_userids' => 'privacy:metadata:block_student_engagement_cache:inactive_userids',
             'last_calculated' => 'privacy:metadata:block_student_engagement_cache:last_calculated',
             'risk_last_calculated' => 'privacy:metadata:block_student_engagement_cache:risk_last_calculated',
+            'last_log_id' => 'privacy:metadata:block_student_engagement_cache:last_log_id',
+            'last_log_timecreated' => 'privacy:metadata:block_student_engagement_cache:last_log_timecreated',
         ], 'privacy:metadata:block_student_engagement_cache');
+
+        $collection->add_database_table(self::LOG_AGG_TABLE, [
+            'courseid' => 'privacy:metadata:block_student_engagement_log_agg:courseid',
+            'userid' => 'privacy:metadata:block_student_engagement_log_agg:userid',
+            'timecreated' => 'privacy:metadata:block_student_engagement_log_agg:timecreated',
+            'event_count' => 'privacy:metadata:block_student_engagement_log_agg:event_count',
+            'last_log_id' => 'privacy:metadata:block_student_engagement_log_agg:last_log_id',
+        ], 'privacy:metadata:block_student_engagement_log_agg');
 
         return $collection;
     }
@@ -107,6 +121,19 @@ class provider implements
                  ON r.courseid = ctx.instanceid
               WHERE ctx.contextlevel = :contextlevel
                 AND r.userid = :userid",
+            [
+                'contextlevel' => CONTEXT_COURSE,
+                'userid' => $userid,
+            ]
+        );
+
+        $contextlist->add_from_sql(
+            "SELECT ctx.id
+               FROM {context} ctx
+               JOIN {" . self::LOG_AGG_TABLE . "} la
+                 ON la.courseid = ctx.instanceid
+              WHERE ctx.contextlevel = :contextlevel
+                AND la.userid = :userid",
             [
                 'contextlevel' => CONTEXT_COURSE,
                 'userid' => $userid,
@@ -169,6 +196,14 @@ class provider implements
             }
         }
 
+        $logrecords = $DB->get_records(self::LOG_AGG_TABLE, ['courseid' => $courseid], '', 'userid');
+        foreach ($logrecords as $record) {
+            $userid = (int)$record->userid;
+            if ($userid > 0) {
+                $userlist->add_user($userid);
+            }
+        }
+
         $cache = $DB->get_record(self::CACHE_TABLE, ['courseid' => $courseid], 'most_active_userid,inactive_userids', IGNORE_MISSING);
         if (!$cache) {
             return;
@@ -211,7 +246,7 @@ class provider implements
                 self::RISK_TABLE,
                 ['courseid' => $courseid, 'userid' => $userid],
                 'current_grade,pass_grade,grade_gap,completion_percent,days_inactive,recent_events,attendance_percent,engagement_score,' .
-                    'risk_score,risk_level,risk_flags,last_calculated',
+                    'risk_score,risk_level,risk_flags,last_calculated,last_activity_timecreated',
                 IGNORE_MISSING
             );
             if ($risk) {
@@ -243,6 +278,19 @@ class provider implements
                     );
                 }
             }
+
+            $logaggs = $DB->get_records(
+                self::LOG_AGG_TABLE,
+                ['courseid' => $courseid, 'userid' => $userid],
+                'timecreated ASC',
+                'timecreated,event_count,last_log_id'
+            );
+            if (!empty($logaggs)) {
+                writer::with_context($context)->export_data(
+                    [get_string('privacy:export:log_aggregates', 'block_student_engagement')],
+                    (object)['log_aggregates' => array_values($logaggs)]
+                );
+            }
         }
     }
 
@@ -266,6 +314,7 @@ class provider implements
 
         $DB->delete_records(self::RISK_TABLE, ['courseid' => $courseid]);
         $DB->delete_records(self::CACHE_TABLE, ['courseid' => $courseid]);
+        $DB->delete_records(self::LOG_AGG_TABLE, ['courseid' => $courseid]);
     }
 
     /**
@@ -293,6 +342,7 @@ class provider implements
             }
 
             $DB->delete_records(self::RISK_TABLE, ['courseid' => $courseid, 'userid' => $userid]);
+            $DB->delete_records(self::LOG_AGG_TABLE, ['courseid' => $courseid, 'userid' => $userid]);
             self::remove_user_from_cache_record($courseid, [$userid]);
         }
     }
@@ -320,6 +370,7 @@ class provider implements
         list($insql, $params) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
         $params['courseid'] = $courseid;
         $DB->delete_records_select(self::RISK_TABLE, "courseid = :courseid AND userid {$insql}", $params);
+        $DB->delete_records_select(self::LOG_AGG_TABLE, "courseid = :courseid AND userid {$insql}", $params);
         self::remove_user_from_cache_record($courseid, $userids);
     }
 

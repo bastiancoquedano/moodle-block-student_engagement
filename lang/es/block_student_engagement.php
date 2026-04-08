@@ -159,6 +159,8 @@ $string['privacy:metadata:block_student_engagement_risk:risk_score'] = 'Puntaje 
 $string['privacy:metadata:block_student_engagement_risk:risk_level'] = 'Nivel de riesgo calculado.';
 $string['privacy:metadata:block_student_engagement_risk:risk_flags'] = 'Factores de riesgo que explican el resultado.';
 $string['privacy:metadata:block_student_engagement_risk:last_calculated'] = 'Marca de tiempo del ultimo calculo de riesgo.';
+$string['privacy:metadata:block_student_engagement_risk:last_activity_timecreated'] =
+    'Marca de tiempo de la ultima actividad usada para calcular inactividad.';
 
 $string['privacy:metadata:block_student_engagement_cache'] = 'Almacena cache de engagement por curso con referencias de usuario.';
 $string['privacy:metadata:block_student_engagement_cache:courseid'] = 'ID del curso asociado al cache.';
@@ -166,6 +168,20 @@ $string['privacy:metadata:block_student_engagement_cache:most_active_userid'] = 
 $string['privacy:metadata:block_student_engagement_cache:inactive_userids'] = 'Lista JSON de IDs de usuarios considerados inactivos en el periodo cacheado.';
 $string['privacy:metadata:block_student_engagement_cache:last_calculated'] = 'Marca de tiempo de la ultima actualizacion del cache de engagement.';
 $string['privacy:metadata:block_student_engagement_cache:risk_last_calculated'] = 'Marca de tiempo de la ultima actualizacion de agregados de riesgo.';
+$string['privacy:metadata:block_student_engagement_cache:last_log_id'] =
+    'Ultimo ID de log estandar procesado correctamente para el cache del curso.';
+$string['privacy:metadata:block_student_engagement_cache:last_log_timecreated'] =
+    'Marca de tiempo del ultimo log estandar procesado correctamente para el cache del curso.';
+$string['privacy:metadata:block_student_engagement_log_agg'] =
+    'Almacena actividad de log estandar agregada por curso, usuario y marca de tiempo.';
+$string['privacy:metadata:block_student_engagement_log_agg:courseid'] = 'ID del curso asociado a la actividad de log agregada.';
+$string['privacy:metadata:block_student_engagement_log_agg:userid'] = 'ID del usuario asociado a la actividad de log agregada.';
+$string['privacy:metadata:block_student_engagement_log_agg:timecreated'] =
+    'Marca de tiempo usada como bucket para la actividad de log agregada.';
+$string['privacy:metadata:block_student_engagement_log_agg:event_count'] =
+    'Cantidad de eventos de log agregados para la marca de tiempo.';
+$string['privacy:metadata:block_student_engagement_log_agg:last_log_id'] = 'Mayor ID de log estandar incluido en la fila agregada.';
 
 $string['privacy:export:risk'] = 'Datos de riesgo academico';
 $string['privacy:export:cache_references'] = 'Referencias en cache del curso';
+$string['privacy:export:log_aggregates'] = 'Actividad de log agregada';

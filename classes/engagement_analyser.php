@@ -19,7 +19,7 @@
  * @Author Bastian Coquedano
  *
  * This class is responsible for calculating engagement metrics using Moodle
- * internal tables (especially logstore_standard_log). It is intentionally
+ * internal tables and the plugin's incremental log aggregates. It is intentionally
  * UI-agnostic so it can be reused by scheduled tasks and by the block.
  *
  * Important: keep queries parameterised and apply early filters to make
@@ -38,9 +38,6 @@ defined('MOODLE_INTERNAL') || die();
  * Domain service for engagement calculations.
  */
 class engagement_analyser {
-
-    /** @var string Event name to exclude from interaction counts (noise). */
-    private const EVENT_COURSE_VIEWED = '\\core\\event\\course_viewed';
 
     /** @var string The shortname used to identify the student role. */
     private const STUDENT_ROLE_SHORTNAME = 'student';
@@ -78,7 +75,7 @@ class engagement_analyser {
     /**
      * Get user IDs of students with activity in the last N days.
      *
-     * Activity is based on logstore_standard_log events (excluding course_viewed).
+     * Activity is based on incrementally aggregated logstore events.
      *
      * @param int $courseid
      * @param int|null $days If null, uses active_days_threshold setting.
@@ -95,26 +92,22 @@ class engagement_analyser {
         $days = $days ?? self::active_days_threshold();
         $since = self::since_days($days);
 
-        // Join against role assignments in the course context to avoid large IN() lists
-        // and to ensure we only count students.
-        $sql = "SELECT DISTINCT l.userid
-                  FROM {logstore_standard_log} l
+        $sql = "SELECT DISTINCT la.userid
+                  FROM {" . logstore_aggregator::TABLE . "} la
                   JOIN {context} ctx ON ctx.contextlevel = :contextcourse
                                    AND ctx.instanceid = :ctxcourseid
                   JOIN {role_assignments} ra ON ra.contextid = ctx.id
-                                            AND ra.userid = l.userid
+                                            AND ra.userid = la.userid
                   JOIN {role} r ON r.id = ra.roleid
-                 WHERE l.courseid = :courseid
-                   AND l.userid > 0
-                   AND l.timecreated >= :since
-                   AND l.eventname <> :courseviewed
+                 WHERE la.courseid = :courseid
+                   AND la.userid > 0
+                   AND la.timecreated >= :since
                    AND r.shortname = :studentshortname";
         $params = [
             'contextcourse' => CONTEXT_COURSE,
             'ctxcourseid' => $courseid,
             'courseid' => $courseid,
             'since' => $since,
-            'courseviewed' => self::EVENT_COURSE_VIEWED,
             'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
         ];
 
@@ -168,26 +161,24 @@ class engagement_analyser {
         $days = $days ?? self::active_days_threshold();
         $since = self::since_days($days);
 
-        $sql = "SELECT l.userid, COUNT(1) AS interactions
-                  FROM {logstore_standard_log} l
+        $sql = "SELECT la.userid, SUM(la.event_count) AS interactions
+                  FROM {" . logstore_aggregator::TABLE . "} la
                   JOIN {context} ctx ON ctx.contextlevel = :contextcourse
                                    AND ctx.instanceid = :ctxcourseid
                   JOIN {role_assignments} ra ON ra.contextid = ctx.id
-                                            AND ra.userid = l.userid
+                                            AND ra.userid = la.userid
                   JOIN {role} r ON r.id = ra.roleid
-                 WHERE l.courseid = :courseid
-                   AND l.userid > 0
-                   AND l.timecreated >= :since
-                   AND l.eventname <> :courseviewed
+                 WHERE la.courseid = :courseid
+                   AND la.userid > 0
+                   AND la.timecreated >= :since
                    AND r.shortname = :studentshortname
-              GROUP BY l.userid
+              GROUP BY la.userid
               ORDER BY interactions DESC";
         $params = [
             'contextcourse' => CONTEXT_COURSE,
             'ctxcourseid' => $courseid,
             'courseid' => $courseid,
             'since' => $since,
-            'courseviewed' => self::EVENT_COURSE_VIEWED,
             'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
         ];
 
@@ -225,18 +216,16 @@ class engagement_analyser {
         $days = $days ?? self::inactive_days_threshold();
         $since = self::since_days($days);
 
-        $eventssql = "SELECT COUNT(1)
-                        FROM {logstore_standard_log} l
-                       WHERE l.courseid = :courseid
-                         AND l.userid = :userid
-                         AND l.userid > 0
-                         AND l.timecreated >= :since
-                         AND l.eventname <> :courseviewed";
+        $eventssql = "SELECT COALESCE(SUM(la.event_count), 0)
+                        FROM {" . logstore_aggregator::TABLE . "} la
+                       WHERE la.courseid = :courseid
+                         AND la.userid = :userid
+                         AND la.userid > 0
+                         AND la.timecreated >= :since";
         $eventsparams = [
             'courseid' => $courseid,
             'userid' => $userid,
             'since' => $since,
-            'courseviewed' => self::EVENT_COURSE_VIEWED,
         ];
         $events = (int)$DB->get_field_sql($eventssql, $eventsparams);
 
