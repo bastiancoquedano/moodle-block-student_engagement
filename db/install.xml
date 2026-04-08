@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- @Author Bastian Coquedano -->
-<XMLDB PATH="blocks/student_engagement/db" VERSION="2026040400" COMMENT="XMLDB file for block_student_engagement"
+<XMLDB PATH="blocks/student_engagement/db" VERSION="2026040800" COMMENT="XMLDB file for block_student_engagement"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -19,6 +19,8 @@
         <FIELD NAME="critical_risk_count" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
         <FIELD NAME="average_completion_percent" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
         <FIELD NAME="risk_last_calculated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="last_log_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="last_log_timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -45,6 +47,7 @@
         <FIELD NAME="risk_level" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
         <FIELD NAME="risk_flags" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="last_calculated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="last_activity_timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -54,6 +57,23 @@
         <INDEX NAME="course_risk_level_ix" UNIQUE="false" FIELDS="courseid, risk_level"/>
         <INDEX NAME="course_risk_score_ix" UNIQUE="false" FIELDS="courseid, risk_score"/>
         <INDEX NAME="last_calculated_ix" UNIQUE="false" FIELDS="last_calculated"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="block_student_engagement_log_agg" COMMENT="Aggregated logstore events by course, user and timestamp">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="event_count" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="last_log_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="course_user_time_uix" UNIQUE="true" FIELDS="courseid, userid, timecreated"/>
+        <INDEX NAME="course_time_ix" UNIQUE="false" FIELDS="courseid, timecreated"/>
       </INDEXES>
     </TABLE>
   </TABLES>

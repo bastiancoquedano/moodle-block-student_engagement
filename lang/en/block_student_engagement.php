@@ -159,6 +159,8 @@ $string['privacy:metadata:block_student_engagement_risk:risk_score'] = 'Calculat
 $string['privacy:metadata:block_student_engagement_risk:risk_level'] = 'Calculated risk level.';
 $string['privacy:metadata:block_student_engagement_risk:risk_flags'] = 'Risk factor flags explaining the result.';
 $string['privacy:metadata:block_student_engagement_risk:last_calculated'] = 'Timestamp when risk data was last calculated.';
+$string['privacy:metadata:block_student_engagement_risk:last_activity_timecreated'] =
+    'Timestamp of the latest activity used for inactivity calculations.';
 
 $string['privacy:metadata:block_student_engagement_cache'] = 'Stores course-level engagement cache with user references.';
 $string['privacy:metadata:block_student_engagement_cache:courseid'] = 'Course ID associated with the cache.';
@@ -166,6 +168,18 @@ $string['privacy:metadata:block_student_engagement_cache:most_active_userid'] = 
 $string['privacy:metadata:block_student_engagement_cache:inactive_userids'] = 'JSON list of user IDs considered inactive in the cached period.';
 $string['privacy:metadata:block_student_engagement_cache:last_calculated'] = 'Timestamp when engagement cache was last refreshed.';
 $string['privacy:metadata:block_student_engagement_cache:risk_last_calculated'] = 'Timestamp when risk aggregates were last refreshed.';
+$string['privacy:metadata:block_student_engagement_cache:last_log_id'] =
+    'Last standard log ID successfully processed for the course cache.';
+$string['privacy:metadata:block_student_engagement_cache:last_log_timecreated'] =
+    'Timestamp of the last standard log entry successfully processed for the course cache.';
+$string['privacy:metadata:block_student_engagement_log_agg'] =
+    'Stores aggregated standard log activity by course, user and timestamp.';
+$string['privacy:metadata:block_student_engagement_log_agg:courseid'] = 'Course ID associated with the aggregated log activity.';
+$string['privacy:metadata:block_student_engagement_log_agg:userid'] = 'User ID associated with the aggregated log activity.';
+$string['privacy:metadata:block_student_engagement_log_agg:timecreated'] = 'Timestamp bucket for aggregated log activity.';
+$string['privacy:metadata:block_student_engagement_log_agg:event_count'] = 'Number of log events aggregated for the timestamp.';
+$string['privacy:metadata:block_student_engagement_log_agg:last_log_id'] = 'Highest standard log ID included in the aggregate row.';
 
 $string['privacy:export:risk'] = 'Academic risk data';
 $string['privacy:export:cache_references'] = 'Course cache references';
+$string['privacy:export:log_aggregates'] = 'Aggregated log activity';
