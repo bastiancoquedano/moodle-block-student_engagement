@@ -95,10 +95,10 @@ class engagement_report {
                        u.alternatename,
                        u.lastname AS student,
                        u.firstname AS studentfirstname,
-                       COALESCE(events.eventcount, 0) AS eventcount,
-                       COALESCE(risk.recent_events, COALESCE(events.eventcount, 0)) AS recentevents,
+                       COALESCE(logsummary.eventcount, 0) AS eventcount,
+                       COALESCE(risk.recent_events, COALESCE(logsummary.eventcount, 0)) AS recentevents,
                        COALESCE(completed.completedcount, 0) AS completedcount,
-                       COALESCE(lastaccess.lastcourseaccess, 0) AS lastcourseaccess,
+                       COALESCE(logsummary.lastcourseaccess, 0) AS lastcourseaccess,
                        risk.current_grade AS currentgrade,
                        risk.pass_grade AS passgrade,
                        risk.grade_gap AS gradegap,
@@ -109,8 +109,8 @@ class engagement_report {
                        COALESCE(
                            risk.days_inactive,
                            CASE
-                               WHEN COALESCE(lastaccess.lastcourseaccess, 0) = 0 THEN NULL
-                               ELSE FLOOR((:currenttimestamp - lastaccess.lastcourseaccess) / :secondsinday)
+                               WHEN COALESCE(logsummary.lastcourseaccess, 0) = 0 THEN NULL
+                               ELSE FLOOR((:currenttimestamp - logsummary.lastcourseaccess) / :secondsinday)
                            END
                        ) AS daysinactivevalue,
                        {$scoreexpression} AS engagementscore
@@ -186,12 +186,14 @@ class engagement_report {
                    ) students
               JOIN {user} u ON u.id = students.userid
          LEFT JOIN (
-                    SELECT l.userid, COUNT(1) AS eventcount
+                    SELECT l.userid,
+                           COUNT(1) AS eventcount,
+                           MAX(l.timecreated) AS lastcourseaccess
                       FROM {logstore_standard_log} l
-                     WHERE l.courseid = :eventcourseid
+                     WHERE l.courseid = :logcourseid
                        AND l.userid > 0
                   GROUP BY l.userid
-                   ) events ON events.userid = students.userid
+                   ) logsummary ON logsummary.userid = students.userid
          LEFT JOIN (
                     SELECT c.userid, COUNT(DISTINCT c.coursemoduleid) AS completedcount
                       FROM {course_modules_completion} c
@@ -201,13 +203,6 @@ class engagement_report {
                        AND c.completionstate <> 0
                   GROUP BY c.userid
                    ) completed ON completed.userid = students.userid
-         LEFT JOIN (
-                    SELECT l.userid, MAX(l.timecreated) AS lastcourseaccess
-                      FROM {logstore_standard_log} l
-                     WHERE l.courseid = :lastaccesscourseid
-                       AND l.userid > 0
-                  GROUP BY l.userid
-                   ) lastaccess ON lastaccess.userid = students.userid
          LEFT JOIN {block_student_engagement_risk} risk
                 ON risk.courseid = :riskcourseid
                AND risk.userid = students.userid";
@@ -216,9 +211,8 @@ class engagement_report {
         $params = [
             'contextcourse' => CONTEXT_COURSE,
             'maincourseid' => $courseid,
-            'eventcourseid' => $courseid,
+            'logcourseid' => $courseid,
             'completioncourseid' => $courseid,
-            'lastaccesscourseid' => $courseid,
             'riskcourseid' => $courseid,
             'studentshortname' => self::STUDENT_ROLE_SHORTNAME,
         ];
@@ -234,30 +228,42 @@ class engagement_report {
         }
 
         if (!empty($filters['atrisk'])) {
-            $where .= " AND COALESCE(risk.risk_level, 0) >= :risklevelmin";
+            $where .= " AND risk.risk_level >= :risklevelmin";
             $params['risklevelmin'] = 2;
         } else if ($filters['risklevel'] !== null) {
-            $where .= " AND COALESCE(risk.risk_level, 0) = :risklevel";
             $params['risklevel'] = (int)$filters['risklevel'];
+            if ((int)$filters['risklevel'] === 0) {
+                $where .= " AND (risk.risk_level = :risklevel OR risk.risk_level IS NULL)";
+            } else {
+                $where .= " AND risk.risk_level = :risklevel";
+            }
         }
 
         if ($filters['status'] === 'inactive' || $filters['legacyinactive']) {
             $where .= " AND (
-                COALESCE(lastaccess.lastcourseaccess, 0) = 0
-                OR COALESCE(
-                    risk.days_inactive,
-                    FLOOR((:currenttimeinactive - lastaccess.lastcourseaccess) / :daysecsinactive)
-                ) >= :inactivedaysthreshold
+                logsummary.lastcourseaccess IS NULL
+                OR logsummary.lastcourseaccess = 0
+                OR risk.days_inactive >= :inactivedaysthreshold
+                OR (
+                    risk.days_inactive IS NULL
+                    AND logsummary.lastcourseaccess > 0
+                    AND FLOOR((:currenttimeinactive - logsummary.lastcourseaccess) / :daysecsinactive) >= :inactivedaysthreshold
+                )
             )";
             $params['currenttimeinactive'] = (int)$filters['currenttime'];
             $params['daysecsinactive'] = DAYSECS;
             $params['inactivedaysthreshold'] = (int)$filters['inactivedaysthreshold'];
         } else if ($filters['status'] === 'active') {
-            $where .= " AND COALESCE(lastaccess.lastcourseaccess, 0) > 0
-                        AND COALESCE(
-                            risk.days_inactive,
-                            FLOOR((:currenttimeactive - lastaccess.lastcourseaccess) / :daysecsactive)
-                        ) < :inactivedaysthreshold";
+            $where .= " AND logsummary.lastcourseaccess > 0
+                        AND (
+                            risk.days_inactive < :inactivedaysthreshold
+                            OR (
+                                risk.days_inactive IS NULL
+                                AND FLOOR(
+                                    (:currenttimeactive - logsummary.lastcourseaccess) / :daysecsactive
+                                ) < :inactivedaysthreshold
+                            )
+                        )";
             $params['currenttimeactive'] = (int)$filters['currenttime'];
             $params['daysecsactive'] = DAYSECS;
             $params['inactivedaysthreshold'] = (int)$filters['inactivedaysthreshold'];
@@ -367,9 +373,9 @@ class engagement_report {
                         ELSE 0
                     END) +
                     (CASE
-                        WHEN COALESCE(events.eventcount, 0) >= :eventgoalcompare
+                        WHEN COALESCE(logsummary.eventcount, 0) >= :eventgoalcompare
                         THEN 30
-                        ELSE (COALESCE(events.eventcount, 0) * 30.0 / :eventgoalscale)
+                        ELSE (COALESCE(logsummary.eventcount, 0) * 30.0 / :eventgoalscale)
                     END),
                 0)";
     }

@@ -32,6 +32,20 @@ defined('MOODLE_INTERNAL') || die();
 final class engagement_report_security_test extends \advanced_testcase {
 
     /**
+     * Invoke private static method on engagement_report via reflection.
+     *
+     * @param string $method
+     * @param mixed ...$args
+     * @return mixed
+     */
+    private function invoke_private_static(string $method, ...$args) {
+        $refclass = new \ReflectionClass(engagement_report::class);
+        $refmethod = $refclass->getMethod($method);
+        $refmethod->setAccessible(true);
+        return $refmethod->invoke(null, ...$args);
+    }
+
+    /**
      * Unknown sort tokens must fall back to whitelist defaults.
      *
      * @return void
@@ -80,5 +94,122 @@ final class engagement_report_security_test extends \advanced_testcase {
 
         $this->assertIsArray($rows);
     }
-}
 
+    /**
+     * Risk-level predicates should avoid COALESCE over indexed columns.
+     *
+     * @return void
+     */
+    public function test_build_shared_sql_parts_uses_sargable_risk_level_predicates(): void {
+        $filters = $this->invoke_private_static('normalise_filters', 'all', ['atrisk' => true]);
+        $parts = $this->invoke_private_static('build_shared_sql_parts', 123, $filters);
+
+        $this->assertStringNotContainsString('COALESCE(risk.risk_level, 0)', $parts['where']);
+        $this->assertStringContainsString('risk.risk_level >= :risklevelmin', $parts['where']);
+    }
+
+    /**
+     * Risk level zero filter must include rows without risk cache.
+     *
+     * @return void
+     */
+    public function test_build_shared_sql_parts_risklevel_zero_keeps_null_semantics(): void {
+        $filters = $this->invoke_private_static('normalise_filters', 'all', ['risklevel' => '0']);
+        $parts = $this->invoke_private_static('build_shared_sql_parts', 123, $filters);
+
+        $this->assertStringContainsString('(risk.risk_level = :risklevel OR risk.risk_level IS NULL)', $parts['where']);
+        $this->assertSame(0, $parts['params']['risklevel']);
+    }
+
+    /**
+     * Non-zero risk-level filters should use direct predicates.
+     *
+     * @return void
+     */
+    public function test_build_shared_sql_parts_nonzero_risklevels_use_direct_predicates(): void {
+        foreach ([1, 2, 3] as $risklevel) {
+            $filters = $this->invoke_private_static('normalise_filters', 'all', ['risklevel' => (string)$risklevel]);
+            $parts = $this->invoke_private_static('build_shared_sql_parts', 123, $filters);
+
+            $this->assertStringContainsString('risk.risk_level = :risklevel', $parts['where']);
+            $this->assertStringNotContainsString('risk.risk_level IS NULL', $parts['where']);
+            $this->assertStringNotContainsString('COALESCE(risk.risk_level, 0)', $parts['where']);
+            $this->assertSame($risklevel, $parts['params']['risklevel']);
+        }
+    }
+
+    /**
+     * Active status should use cached inactivity before calculated fallback.
+     *
+     * @return void
+     */
+    public function test_build_shared_sql_parts_active_status_limits_floor_to_uncached_fallback(): void {
+        $filters = $this->invoke_private_static('normalise_filters', 'all', ['status' => 'active']);
+        $parts = $this->invoke_private_static('build_shared_sql_parts', 123, $filters);
+
+        $this->assertStringContainsString('logsummary.lastcourseaccess > 0', $parts['where']);
+        $this->assertStringContainsString('risk.days_inactive < :inactivedaysthreshold', $parts['where']);
+        $this->assertStringContainsString('risk.days_inactive IS NULL', $parts['where']);
+        $this->assertStringContainsString('FLOOR(', $parts['where']);
+        $this->assertStringContainsString(':currenttimeactive - logsummary.lastcourseaccess', $parts['where']);
+        $this->assertStringContainsString('/ :daysecsactive', $parts['where']);
+        $this->assertStringNotContainsString('COALESCE(', $parts['where']);
+    }
+
+    /**
+     * Inactive status should use cached inactivity before calculated fallback.
+     *
+     * @return void
+     */
+    public function test_build_shared_sql_parts_inactive_status_limits_floor_to_uncached_fallback(): void {
+        $filters = $this->invoke_private_static('normalise_filters', 'all', ['status' => 'inactive']);
+        $parts = $this->invoke_private_static('build_shared_sql_parts', 123, $filters);
+
+        $this->assertStringContainsString('logsummary.lastcourseaccess IS NULL', $parts['where']);
+        $this->assertStringContainsString('logsummary.lastcourseaccess = 0', $parts['where']);
+        $this->assertStringContainsString('risk.days_inactive >= :inactivedaysthreshold', $parts['where']);
+        $this->assertStringContainsString('risk.days_inactive IS NULL', $parts['where']);
+        $this->assertStringContainsString(
+            'FLOOR((:currenttimeinactive - logsummary.lastcourseaccess) / :daysecsinactive)',
+            $parts['where']
+        );
+        $this->assertStringNotContainsString('COALESCE(', $parts['where']);
+    }
+
+    /**
+     * Group filters should compose with risk and status predicates.
+     *
+     * @return void
+     */
+    public function test_build_shared_sql_parts_group_filter_composes_with_risk_and_status(): void {
+        $filters = $this->invoke_private_static('normalise_filters', 'all', [
+            'groupid' => '42',
+            'risklevel' => '2',
+            'status' => 'inactive',
+        ]);
+        $parts = $this->invoke_private_static('build_shared_sql_parts', 123, $filters);
+
+        $this->assertStringContainsString('FROM {groups_members} gm', $parts['where']);
+        $this->assertStringContainsString('gm.userid = students.userid', $parts['where']);
+        $this->assertStringContainsString('gm.groupid = :groupid', $parts['where']);
+        $this->assertStringContainsString('risk.risk_level = :risklevel', $parts['where']);
+        $this->assertStringContainsString('risk.days_inactive >= :inactivedaysthreshold', $parts['where']);
+        $this->assertSame(42, $parts['params']['groupid']);
+        $this->assertSame(2, $parts['params']['risklevel']);
+    }
+
+    /**
+     * Log table should be scanned only once in shared SQL parts.
+     *
+     * @return void
+     */
+    public function test_build_shared_sql_parts_queries_logstore_only_once(): void {
+        $filters = $this->invoke_private_static('normalise_filters', 'all', []);
+        $parts = $this->invoke_private_static('build_shared_sql_parts', 123, $filters);
+
+        $occurrences = substr_count($parts['from'], '{logstore_standard_log}');
+        $this->assertSame(1, $occurrences);
+        $this->assertStringContainsString('COUNT(1) AS eventcount', $parts['from']);
+        $this->assertStringContainsString('MAX(l.timecreated) AS lastcourseaccess', $parts['from']);
+    }
+}
